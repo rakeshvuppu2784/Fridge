@@ -19,7 +19,7 @@
   #sky { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #1B2A3D, #25394F 50%, #33506A); }
   .grid { position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 40px 48px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 40px; }
   .left { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; }
-  .row { display: flex; align-items: center; gap: 12px; font-size: 26px; line-height: 1.25; white-space: nowrap; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 12px; font-size: 26px; line-height: 1.2; white-space: nowrap; overflow: hidden; }
   .row .n { overflow: hidden; text-overflow: ellipsis; }
   .row .t { color: var(--dim); min-width: 88px; flex-shrink: 0; }
   .row.act { color: var(--gold); font-weight: 500; }
@@ -27,9 +27,13 @@
   .lbl { font-size: 24px; color: var(--dim); margin-bottom: 8px; }
   .cols { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; min-width: 0; }
   .cols > div { min-width: 0; }
-  .cd { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
-  .cd .d { font-family: var(--serif); font-size: 46px; line-height: 1; }
-  .cd .l { font-size: 24px; color: #D5DCE4; }
+  .cds { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 4px 36px; min-width: 0; }
+  .cd { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+  .cd .d { font-family: var(--serif); font-size: 40px; line-height: 1; flex-shrink: 0; }
+  .cd .u { font-size: 20px; color: var(--dim); flex-shrink: 0; }
+  .cd .names { display: flex; align-items: center; gap: 12px; min-width: 0; overflow: hidden; }
+  .cd .nm { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+  .cd .cdn { font-size: 24px; color: #D5DCE4; overflow: hidden; text-overflow: ellipsis; }
   .pill { display: inline-block; padding: 3px 14px; border-radius: 999px; font-size: 22px; font-weight: 500; white-space: nowrap; }
   svg.ic { fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .tl { position: relative; height: 146px; }
@@ -96,7 +100,7 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
         <div class="js-workout" style="display:flex;align-items:center;gap:14px;font-size:26px;white-space:nowrap;overflow:hidden"></div>
-        <div class="js-countdowns" style="display:flex;align-items:baseline;gap:26px;white-space:nowrap;overflow:hidden"></div>
+        <div class="js-countdowns cds"></div>
       </div>
     </div>
     <div class="photo js-photo">
@@ -211,7 +215,7 @@
   let data = null, wx = null, lastOk = 0;
   try { wx = JSON.parse(localStorage.getItem('dash-wx') || 'null'); } catch (e) {}
   let photos = [], photoKey = '', photoIdx = 0, photoLayer = 0;
-  let interActive = false, lastInter = Date.now(), interTimer = null, confettiTimer = null;
+  let interActive = false, lastInter = Date.now(), interTimer = null, confettiTimer = null, lastHero = null;
 
   // ---------- Sample data ----------
   function sample() {
@@ -336,7 +340,7 @@
     const tmr = (data?.tomorrow || []).find(e => !e.allDay);
     if (tmr) return { e: tmr, eyebrow: `Tomorrow, ${ampm(new Date(tmr.start))}`, soon: false };
     const cd = (data?.countdowns || [])[0];
-    if (cd) { const p = splitWho(cd.label); return { e: { title: p.title, who: p.who }, eyebrow: 'Coming up', meta: cd.days === 0 ? 'Today' : cd.days === 1 ? 'Tomorrow' : `In ${cd.days} days`, soon: false }; }
+    if (cd) { const p = splitWho(cd.label); return { days: cd.days, e: { title: p.title, who: p.who }, eyebrow: 'Coming up', meta: cd.days === 0 ? 'Today' : cd.days === 1 ? 'Tomorrow' : `In ${cd.days} days`, soon: false }; }
     return { e: { title: data?.message || 'A quiet day' }, eyebrow: 'Today', soon: false };
   }
   const titleSize = len => Math.max(46, Math.min(88, Math.floor(620 / (Math.max(len, 1) * .52))));
@@ -403,6 +407,18 @@
     set('.js-sun', `Sun up ${fmtH(sr)}, down ${fmtH(ss)}`);
   }
 
+  // ---------- Countdown clusters: no near-duplicates, tied dates stay together ----------
+  const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  function countdownClusters(list, shown) {
+    const items = (list || []).map(c => ({ days: c.days, ...splitWho(c.label), norm: normLabel(c.label) }))
+      .filter(a => !(shown || []).some(x => x.days === a.days && a.norm.length >= 3 && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
+    const kept = items.filter((a, i) => a.norm.length < 3 || !items.some((b, j) => j !== i && b.days === a.days && b.norm !== a.norm && b.norm.includes(a.norm)));
+    const seen = new Set(), uniq = kept.filter(a => { const k = a.days + '|' + a.norm; if (seen.has(k)) return false; seen.add(k); return true; });
+    const groups = [];
+    uniq.forEach(a => { let g = groups.find(x => x.days === a.days); if (!g) groups.push(g = { days: a.days, names: [] }); g.names.push(a); });
+    return groups.sort((a, b) => a.days - b.days).slice(0, 4);
+  }
+
   // ---------- Lists, workout, countdown ----------
   const trow = (time, who, color, name) => `<div class="row"><span class="t tn">${esc(time)}</span>${chip(who, color, 30)}<span class="n">${esc(name)}</span></div>`;
   const prow = (txt, kind) => `<div class="row ${kind || ''}"><span class="n">${esc(txt)}</span></div>`;
@@ -434,11 +450,21 @@
 
     const w = data.workout;
     set('.js-workout', w && w.title ? `${chip('Me', null, 34)}<span style="color:var(--dim)">Next workout</span><span style="overflow:hidden;text-overflow:ellipsis">${esc(w.title)}</span>${w.stale ? '<span style="font-size:18px;color:var(--faint)">sync overdue</span>' : ''}` : '');
-    const cds = (data.countdowns || []).slice(0, 3);
-    set('.js-countdowns', cds.length ? '<span style="font-size:24px;color:var(--dim)">Days to go</span>' + cds.map(c => {
-      const p2 = splitWho(c.label), ps = personStyle(p2.who), alert = c.days <= CD_ALERT_DAYS;
-      return `<span class="cd"><span class="d tn" style="color:${alert ? GOLD : 'var(--cream)'}">${c.days === 0 ? 'Today' : c.days}</span><span class="l">${esc(p2.title)}</span>${ps ? `<span style="align-self:center">${chip(p2.who, null, 28)}</span>` : ''}</span>`;
-    }).join('') : '<span style="font-size:24px;color:var(--dim)">Add tests and events from the form</span>');
+    // what is already on screen above, with its date: never count it down again
+    const day0 = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()).getTime(), shown = [];
+    const mark = (title, days) => { const n = normLabel(title); if (n.length >= 3) shown.push({ norm: n, days }); };
+    const todayEv = data.today || [], tmrEv = (data.tomorrow || []).filter(e => e.time !== 'Gym');
+    todayEv.filter(e => !e.allDay).forEach(e => mark(e.title, 0));
+    todayEv.filter(e => e.allDay).slice(0, 4).forEach(e => mark(e.title, 0));
+    tmrEv.slice(0, 4).forEach(e => mark(e.title, 1));
+    if (lastHero && lastHero.e && lastHero.e.title) mark(lastHero.e.title, lastHero.days != null ? lastHero.days : (lastHero.e.start ? Math.round((new Date(lastHero.e.start).setHours(0, 0, 0, 0) - day0) / 864e5) : 0));
+    const cl = countdownClusters(data.countdowns, shown);
+    set('.js-countdowns', cl.length ? cl.map(g => {
+      const alert = g.days <= CD_ALERT_DAYS;
+      const unit = g.days === 0 ? '' : `<span class="u">${g.days === 1 ? 'day' : 'days'}</span>`;
+      const names = g.names.map(n => `<span class="nm"><span class="cdn">${esc(n.title)}</span>${personStyle(n.who) ? chip(n.who, null, 26) : ''}</span>`).join('');
+      return `<span class="cd"><span class="d tn" style="color:${alert ? GOLD : 'var(--cream)'}">${g.days === 0 ? 'Today' : g.days}</span>${unit}<span class="names">${names}</span></span>`;
+    }).join('') : ((data.countdowns || []).length ? '' : '<span style="font-size:24px;color:var(--dim)">Add tests and events from the form</span>'));
   }
 
   // ---------- Weather card with sun / moon arc ----------
@@ -482,7 +508,7 @@
     const nowD = clockNow(), nowMs = nowD.getTime();
     renderSky();
     if (data) {
-      renderHero(nowMs);
+      lastHero = renderHero(nowMs);
       renderTimeline(nowD); renderLists(nowD);
       syncPhotos(data.photos || []);
     }
