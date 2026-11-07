@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fridge">
+<meta name="theme-color" content="#121212">
+<title>Fridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #121212;
+    --text: #F2F0EB;
+    --muted: #A8A49C;
+    --soft: #D8D4CC;
+    --rule: #2A2A2A;
+    --accent: #E8A33D;
+    --night: #8C887F;
+    --night-accent: #B07A2E;
+    --num: 'Space Grotesk', Inter, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+    font-family: Inter, system-ui, -apple-system, sans-serif; color: var(--text);
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  #stage { position: absolute; top: 50%; left: 50%; width: 1180px; height: 820px;
+    transform-origin: center center; background: var(--bg); overflow: hidden; }
+  .mode { position: absolute; inset: 0; display: none; }
+  .mode.on { display: flex; }
+  .pad { padding: 52px 60px; flex-direction: column; gap: 36px; }
+
+  .clock { font-family: var(--num); line-height: 1; font-weight: 400; }
+  .date { font-size: 32px; color: var(--muted); }
+  .label { font-size: 22px; font-weight: 600; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; }
+  .row { display: flex; justify-content: space-between; }
+  .col { display: flex; flex-direction: column; }
+  .grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 64px; flex-grow: 1; min-height: 0; }
+
+  .ev { display: flex; align-items: center; gap: 24px; }
+  .dot { width: 14px; height: 14px; border-radius: 7px; flex-shrink: 0; }
+  .ev .t { font-size: 28px; color: var(--muted); width: 104px; flex-shrink: 0; }
+  .ev .n { font-size: 32px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { font-size: 28px; color: var(--muted); }
+
+  .cd { display: flex; align-items: baseline; gap: 20px; }
+  .cd .d { font-family: var(--num); font-size: 56px; color: var(--accent); width: 84px; text-align: right; line-height: 1; }
+  .cd .l { font-size: 28px; }
+
+  .foot { display: flex; justify-content: space-between; align-items: center; gap: 32px;
+    padding-top: 24px; border-top: 1px solid var(--rule); font-size: 28px; }
+  .foot .left { color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .foot .right { color: var(--accent); white-space: nowrap; }
+
+  .wx-big { display: flex; align-items: center; gap: 16px; }
+  .wx-big .temp { font-family: var(--num); font-size: 72px; line-height: 1; }
+  .wx-line { font-size: 28px; color: var(--muted); }
+  svg.ic { stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Photo */
+  #photo { background: #1C1C1C; }
+  .ph { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease; }
+  .ph.show { opacity: 1; }
+  .ph-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #8C8980; background: #262624; }
+  .band { position: absolute; left: 0; right: 0; bottom: 0; height: 260px; background: rgba(0,0,0,.6); }
+  .band-in { position: absolute; left: 60px; right: 60px; bottom: 52px; display: flex; justify-content: space-between; align-items: flex-end; }
+
+  /* Night */
+  #night { background: #000; color: var(--night); flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+  #night .clock { font-size: 220px; letter-spacing: -8px; }
+  #night .sub { font-size: 30px; }
+  #night .next { margin-top: 40px; font-size: 28px; color: var(--night-accent); }
+
+  .status { position: absolute; right: 20px; bottom: 12px; font-size: 16px; color: #6E6B64; }
+  .banner { position: absolute; left: 0; right: 0; top: 0; padding: 8px 60px; font-size: 18px; background: #3A2A10; color: #F2C27A; z-index: 5; }
+  @media (prefers-reduced-motion: reduce) { .ph { transition: none; } }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- MORNING -->
+  <section id="morning" class="mode pad">
+    <div class="row" style="align-items:flex-start">
+      <div class="col" style="gap:6px">
+        <div class="clock js-clock" style="font-size:132px;letter-spacing:-4px"></div>
+        <div class="date js-date"></div>
+      </div>
+      <div class="col" style="align-items:flex-end;gap:8px;padding-top:12px">
+        <div class="wx-big"><span class="js-wx-icon"></span><div class="temp js-temp">--°</div></div>
+        <div class="wx-line js-hilo"></div>
+        <div class="wx-line js-rain-aqi"></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="col" style="gap:22px;min-width:0">
+        <div class="label">Today</div>
+        <div class="col js-today" style="gap:22px"></div>
+      </div>
+      <div class="col" style="gap:22px">
+        <div class="label">Coming up</div>
+        <div class="col js-countdowns" style="gap:22px"></div>
+      </div>
+    </div>
+    <div class="foot"><div class="left js-todos"></div><div class="right js-message"></div></div>
+  </section>
+
+  <!-- PHOTO / DAYTIME IDLE -->
+  <section id="photo" class="mode">
+    <div class="ph js-ph-a"></div>
+    <div class="ph js-ph-b"></div>
+    <div class="ph-empty js-ph-empty">Add photos to your Drive folder to fill this screen</div>
+    <div class="band"></div>
+    <div class="band-in">
+      <div class="col" style="gap:6px">
+        <div class="clock js-clock" style="font-size:96px;letter-spacing:-3px"></div>
+        <div style="font-size:28px;color:#C9C5BC"><span class="js-date"></span><span class="js-temp-inline"></span></div>
+      </div>
+      <div class="col" style="align-items:flex-end;gap:6px">
+        <div style="font-size:28px;color:var(--accent)" class="js-next"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVENING -->
+  <section id="evening" class="mode pad" style="gap:40px">
+    <div class="row" style="align-items:flex-end">
+      <div style="display:flex;align-items:baseline;gap:28px">
+        <div class="clock js-clock" style="font-size:96px;letter-spacing:-3px"></div>
+        <div class="date js-date" style="font-size:30px"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <span class="js-wx-icon-tmr"></span>
+        <div style="font-size:28px;color:var(--soft)" class="js-wx-tmr"></div>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns:1.4fr 1fr">
+      <div class="col" style="gap:22px;min-width:0">
+        <div class="label js-tmr-label">Tomorrow</div>
+        <div class="col js-tomorrow" style="gap:22px"></div>
+        <div class="js-pack" style="font-size:26px;color:var(--accent);margin-top:6px"></div>
+      </div>
+      <div class="col" style="gap:22px">
+        <div class="label">Dinner tonight</div>
+        <div class="js-dinner" style="font-size:44px;font-weight:500;line-height:1.15"></div>
+        <div class="col js-tmr-meals" style="gap:14px;margin-top:18px"></div>
+      </div>
+    </div>
+    <div class="foot"><div class="left js-shopping"></div><div class="right js-message"></div></div>
+  </section>
+
+  <!-- NIGHT -->
+  <section id="night" class="mode">
+    <div class="clock js-clock"></div>
+    <div class="sub"><span class="js-date"></span><span class="js-temp-inline"></span></div>
+    <div class="next js-night-next"></div>
+  </section>
+
+  <div class="status js-status"></div>
+  <div class="banner js-banner" hidden>Showing sample data. Open this page with ?api=YOUR_EXEC_URL&amp;key=YOUR_KEY to connect your calendar and sheet.</div>
+</div>
+
+<script>
+(() => {
+  // ---------- Schedule (24h clock, edit freely) ----------
+  const SCHEDULE = [
+    { mode: 'night',   from: 0,  to: 6  },
+    { mode: 'morning', from: 6,  to: 9  },
+    { mode: 'photo',   from: 9,  to: 17 },
+    { mode: 'evening', from: 17, to: 22 },
+    { mode: 'night',   from: 22, to: 24 },
+  ];
+  const MODES = ['morning', 'photo', 'evening', 'night'];
+  const DATA_EVERY = 10 * 60e3, WX_EVERY = 30 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
+
+  // ---------- Config from URL, remembered on device ----------
+  const qs = new URLSearchParams(location.search);
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('dash-config') || '{}'); } catch (e) {}
+  ['api', 'key', 'lat', 'lon'].forEach(k => { if (qs.get(k)) cfg[k] = qs.get(k); });
+  if (qs.get('reset')) cfg = {};
+  try { localStorage.setItem('dash-config', JSON.stringify(cfg)); } catch (e) {}
+  const LAT = parseFloat(cfg.lat) || 17.385, LON = parseFloat(cfg.lon) || 78.4867; // Hyderabad
+  const DEMO = qs.get('demo') === '1' || !cfg.api || !cfg.key;
+
+  // ---------- Helpers ----------
+  const $$ = s => document.querySelectorAll(s);
+  const setAll = (s, html) => $$(s).forEach(el => { el.innerHTML = html; });
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safeColor = c => /^#[0-9a-f]{3,8}$/i.test(c || '') ? c : '#E8E2D6';
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const hm = d => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const longDate = d => `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+
+  const ICONS = {
+    sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
+    cloud: '<path d="M7 18a4.5 4.5 0 1 1 1.2-8.8A5.5 5.5 0 0 1 18.5 11 3.5 3.5 0 0 1 18 18H7z"/>',
+    rain: '<path d="M7 15a4.5 4.5 0 1 1 1.2-8.8A5.5 5.5 0 0 1 18.5 8 3.5 3.5 0 0 1 18 15H7z"/><path d="M9 18l-1 2.5M13 18l-1 2.5M17 18l-1 2.5"/>',
+  };
+  const iconFor = code => code == null ? 'sun' : code <= 1 ? 'sun' : code <= 48 ? 'cloud' : 'rain';
+  const svg = (name, size) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+
+  // ---------- State ----------
+  let data = null, wx = null, lastOk = 0, override = null, overrideUntil = 0;
+  let photos = [], photoIdx = 0, photoLayer = 0;
+
+  // ---------- Sample data (shown until connected) ----------
+  function sample() {
+    const base = new Date(); base.setHours(0, 0, 0, 0);
+    const at = (h, m) => base.getTime() + (h * 60 + m) * 60e3;
+    const ev = (title, h, m, color, dayOffset = 0) => {
+      const s = at(h, m) + dayOffset * 864e5;
+      return { title, allDay: false, start: s, end: s + 3600e3, time: hm(new Date(s)), color };
+    };
+    return {
+      today: [ev('School bus', 8, 0, '#7FB3FF'), ev('Client review', 10, 30, '#F2A65A'), ev('Tuition', 16, 30, '#7FB3FF'), ev('Dinner with guests', 19, 30, '#E8E2D6')],
+      tomorrow: [ev('Weekly test', 7, 0, '#7FB3FF', 1), ev('Gym', 9, 0, '#F2A65A', 1), ev('Training session', 11, 0, '#8FD3B6', 1), ev('Grocery run', 18, 0, '#E8E2D6', 1)],
+      meals: {
+        today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, jeera rice, bhindi fry', prep: 'Soak moong dal tonight' },
+        tomorrow: { breakfast: 'Pesarattu', lunch: 'Curd rice', dinner: 'Biryani', prep: '' },
+      },
+      todos: ['Pay internet', 'Water plants'],
+      shopping: ['Curd', 'Bananas', 'Coriander'],
+      countdowns: [{ label: 'Electricity bill', days: 3 }, { label: 'Unit test', days: 12 }, { label: 'Family trip', days: 27 }],
+      message: 'Proud of you, champ!',
+      pack: 'Hall ticket, umbrella',
+      photos: [],
+    };
+  }
+
+  // ---------- Data loading ----------
+  async function loadData() {
+    if (DEMO) { data = sample(); lastOk = Date.now(); renderData(); return; }
+    try {
+      const r = await fetch(`${cfg.api}?key=${encodeURIComponent(cfg.key)}`, { cache: 'no-store' });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      data = j; lastOk = Date.now();
+      try { localStorage.setItem('dash-data', JSON.stringify({ t: lastOk, j })); } catch (e) {}
+    } catch (e) {
+      if (!data) {
+        try { const c = JSON.parse(localStorage.getItem('dash-data')); if (c) { data = c.j; lastOk = c.t; } } catch (e2) {}
+      }
+      console.warn('Data load failed', e);
+    }
+    renderData();
+  }
+
+  async function loadWeather() {
+    try {
+      const f = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+        `&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code` +
+        `&timezone=auto&forecast_days=2`).then(r => r.json());
+      let aqi = null;
+      try {
+        const a = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}&current=us_aqi`).then(r => r.json());
+        aqi = a.current?.us_aqi ?? null;
+      } catch (e) {}
+      wx = {
+        temp: Math.round(f.current.temperature_2m), code: f.current.weather_code,
+        hi: Math.round(f.daily.temperature_2m_max[0]), lo: Math.round(f.daily.temperature_2m_min[0]),
+        rain: f.daily.precipitation_probability_max[0],
+        tHi: Math.round(f.daily.temperature_2m_max[1]), tLo: Math.round(f.daily.temperature_2m_min[1]),
+        tRain: f.daily.precipitation_probability_max[1], tCode: f.daily.weather_code[1],
+        aqi: aqi == null ? null : Math.round(aqi),
+      };
+    } catch (e) { console.warn('Weather failed', e); }
+    renderWeather();
+  }
+
+  // ---------- Rendering ----------
+  const evRow = e => `<div class="ev"><span class="dot" style="background:${safeColor(e.color)}"></span><span class="t">${esc(e.time)}</span><span class="n">${esc(e.title)}</span></div>`;
+
+  function upcomingToday() {
+    const now = Date.now();
+    return (data?.today || []).filter(e => e.allDay || e.end > now);
+  }
+
+  function renderData() {
+    if (!data) return;
+    const up = upcomingToday().slice(0, 5);
+    setAll('.js-today', up.length ? up.map(evRow).join('') : '<div class="empty">Nothing else today</div>');
+
+    const cds = data.countdowns || [];
+    setAll('.js-countdowns', cds.length
+      ? cds.map(c => `<div class="cd"><div class="d">${c.days === 0 ? 'Today' : c.days}</div><div class="l">${c.days === 0 ? '' : (c.days === 1 ? 'day · ' : 'days · ')}${esc(c.label)}</div></div>`).join('')
+      : '<div class="empty">Add dates in Countdowns</div>');
+
+    setAll('.js-todos', (data.todos || []).length ? data.todos.map(esc).join(' · ') : 'All done');
+    setAll('.js-shopping', (data.shopping || []).length ? 'Buy: ' + data.shopping.map(esc).join(' · ') : 'Shopping list is empty');
+    setAll('.js-message', esc(data.message || ''));
+
+    const tmr = (data.tomorrow || []).slice(0, 5);
+    const t = new Date(Date.now() + 864e5);
+    setAll('.js-tmr-label', 'Tomorrow · ' + DAYS[t.getDay()]);
+    setAll('.js-tomorrow', tmr.length ? tmr.map(evRow).join('') : '<div class="empty">Free day tomorrow</div>');
+    setAll('.js-pack', data.pack ? 'Pack: ' + esc(data.pack) : '');
+
+    const mt = data.meals?.today, mm = data.meals?.tomorrow;
+    setAll('.js-dinner', esc(mt?.dinner || 'Not planned yet'));
+    const lines = [];
+    if (mm?.breakfast) lines.push(['Breakfast', mm.breakfast]);
+    if (mm?.lunch) lines.push(['Lunch box', mm.lunch]);
+    if (mt?.prep) lines.push(['Tonight', mt.prep]);
+    setAll('.js-tmr-meals', lines.length
+      ? '<div class="label">Tomorrow</div>' + lines.map(([k, v]) => `<div style="font-size:28px"><span style="color:var(--muted)">${k}</span>&nbsp;&nbsp;${esc(v)}</div>`).join('')
+      : '');
+
+    const nxt = upcomingToday().find(e => !e.allDay && e.start > Date.now());
+    setAll('.js-next', nxt ? `Next: ${esc(nxt.title)} at ${esc(nxt.time)}` : esc(data.message || ''));
+
+    const first = (data.tomorrow || []).find(e => !e.allDay);
+    setAll('.js-night-next', first ? `Tomorrow · ${esc(first.title)} at ${esc(first.time)}` : 'Nothing early tomorrow');
+
+    const newPhotos = data.photos || [];
+    if (newPhotos.join() !== photos.join()) {
+      photos = shuffle(newPhotos.slice());
+      photoIdx = 0;
+      document.querySelector('.js-ph-empty').style.display = photos.length ? 'none' : 'flex';
+      if (photos.length) nextPhoto();
+    }
+    renderStatus();
+  }
+
+  function renderWeather() {
+    if (!wx) return;
+    setAll('.js-temp', `${wx.temp}°`);
+    setAll('.js-temp-inline', ` · ${wx.temp}°`);
+    setAll('.js-wx-icon', svg(iconFor(wx.code), 56));
+    setAll('.js-hilo', `High ${wx.hi}° · Low ${wx.lo}°`);
+    setAll('.js-rain-aqi', `Rain ${wx.rain ?? 0}%` + (wx.aqi != null ? ` · AQI ${wx.aqi}` : ''));
+    setAll('.js-wx-icon-tmr', svg(iconFor(wx.tCode), 40));
+    setAll('.js-wx-tmr', `Tomorrow ${wx.tLo}°–${wx.tHi}° · Rain ${wx.tRain ?? 0}%`);
+  }
+
+  function renderStatus() {
+    const el = document.querySelector('.js-status');
+    if (DEMO) { el.textContent = ''; return; }
+    const age = Date.now() - lastOk;
+    el.textContent = !lastOk ? 'Not connected' : age > 30 * 60e3 ? `Offline · last updated ${hm(new Date(lastOk))}` : '';
+  }
+
+  function currentMode() {
+    if (override && Date.now() < overrideUntil) return override;
+    override = null;
+    const n = new Date(), h = n.getHours() + n.getMinutes() / 60;
+    return (SCHEDULE.find(s => h >= s.from && h < s.to) || SCHEDULE[0]).mode;
+  }
+
+  let shownMode = null;
+  function tick() {
+    const now = new Date();
+    setAll('.js-clock', hm(now));
+    setAll('.js-date', longDate(now));
+    const m = currentMode();
+    if (m !== shownMode) {
+      MODES.forEach(id => document.getElementById(id).classList.toggle('on', id === m));
+      shownMode = m;
+      renderData();
+    }
+    renderStatus();
+  }
+
+  // ---------- Photos ----------
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function nextPhoto() {
+    if (!photos.length) return;
+    const id = photos[photoIdx++ % photos.length];
+    const url = `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1600`;
+    const img = new Image();
+    img.onload = () => {
+      const a = document.querySelector('.js-ph-a'), b = document.querySelector('.js-ph-b');
+      const [show, hide] = photoLayer ? [a, b] : [b, a];
+      show.style.backgroundImage = `url("${url}")`;
+      show.classList.add('show'); hide.classList.remove('show');
+      photoLayer = 1 - photoLayer;
+    };
+    img.onerror = () => { if (photos.length > 1) setTimeout(nextPhoto, 2000); };
+    img.src = url;
+  }
+
+  // ---------- Layout ----------
+  function fit() {
+    const s = Math.min(innerWidth / 1180, innerHeight / 820);
+    document.getElementById('stage').style.transform = `translate(-50%, -50%) scale(${s})`;
+  }
+
+  // Tap anywhere to preview the next mode for 2 minutes
+  document.getElementById('stage').addEventListener('click', () => {
+    const i = MODES.indexOf(currentMode());
+    override = MODES[(i + 1) % MODES.length];
+    overrideUntil = Date.now() + 120e3;
+    tick();
+  });
+
+  // ---------- Start ----------
+  if (DEMO) document.querySelector('.js-banner').hidden = false;
+  addEventListener('resize', fit); fit();
+  tick(); loadData(); loadWeather();
+  setInterval(tick, 5e3);
+  setInterval(loadData, DATA_EVERY);
+  setInterval(loadWeather, WX_EVERY);
+  setInterval(nextPhoto, PHOTO_EVERY);
+  setTimeout(() => location.reload(), RELOAD_EVERY);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadData(); loadWeather(); tick(); } });
+})();
+</script>
+</body>
+</html>
