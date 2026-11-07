@@ -24,7 +24,7 @@
     -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   .tn { font-variant-numeric: tabular-nums; }
   #stage { position: absolute; top: 50%; left: 50%; width: 1180px; height: 820px; transform-origin: center;
-    background: var(--bg); padding: 40px 48px; display: grid; grid-template-columns: minmax(0, 1fr) 352px; gap: 40px; overflow: hidden; }
+    background: var(--bg); padding: 40px 48px; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 40px; overflow: hidden; }
   .lbl { font-size: 15px; font-weight: 600; letter-spacing: 3.5px; color: var(--faint); text-transform: uppercase; }
   .sub { font-size: 14px; font-weight: 600; letter-spacing: 3px; color: var(--fainter); margin-top: 4px; }
   .chip { width: 28px; height: 28px; border-radius: 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -48,17 +48,21 @@
   .cd .l { font-size: 21px; }
 
   .right { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
-  .photo { position: relative; height: 236px; border-radius: 20px; overflow: hidden; background: #2A241F; flex-shrink: 0; }
+  .photo { position: relative; flex-grow: 1; min-height: 0; border-radius: 22px; overflow: hidden; background: #2A241F; }
   .ph { position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease; }
   .ph.show { opacity: 1; }
   .ph-bg { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(28px) brightness(.55); }
   .ph-fg { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
-  .ph.portrait .ph-fg { background-size: contain; }
+  .ph.landscape .ph-fg { background-size: contain; background-position: center 30%; }
   .ph.show .ph-fg { animation: kb 60s ease-out forwards; }
   @keyframes kb { from { transform: scale(1); } to { transform: scale(1.05); } }
-  .ph-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(to top, rgba(16,13,11,.7), rgba(16,13,11,0)); }
-  .ph-cap { position: absolute; left: 16px; bottom: 12px; font-size: 13px; font-weight: 600; letter-spacing: 2.5px; color: #E6DDD1; text-transform: uppercase; }
-  .ph-dots { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 5px; }
+  .ph-shade { position: absolute; left: 0; right: 0; top: 0; height: 90px; background: linear-gradient(to bottom, rgba(16,13,11,.55), rgba(16,13,11,0)); }
+  .wx-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 340px; background: linear-gradient(to top, rgba(16,13,11,.94) 0%, rgba(16,13,11,.80) 55%, rgba(16,13,11,0) 100%); pointer-events: none; }
+  .wx { position: absolute; left: 24px; right: 24px; bottom: 22px; display: flex; flex-direction: column; gap: 12px; }
+  .js-workout { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-top: 1px solid var(--rule); white-space: nowrap; overflow: hidden; }
+  .js-workout:empty { display: none; }
+  .ph-cap { position: absolute; left: 22px; top: 20px; font-size: 13px; font-weight: 600; letter-spacing: 2.5px; color: #E6DDD1; text-transform: uppercase; }
+  .ph-dots { position: absolute; right: 22px; top: 25px; display: flex; gap: 5px; }
   .ph-dots span { width: 5px; height: 5px; border-radius: 3px; background: rgba(244,238,228,.45); transition: width .4s; }
   .ph-dots span.on { width: 16px; background: var(--text); }
   .ph-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #8C8278; text-align: center; padding: 20px; }
@@ -99,6 +103,8 @@
       </div>
     </div>
 
+    <div class="js-workout"></div>
+
     <div class="cd-strip"><div class="lbl" style="flex-shrink:0">Countdown</div><div class="js-countdowns" style="display:flex;gap:34px;align-items:baseline"></div></div>
   </div>
 
@@ -110,27 +116,25 @@
       <div class="ph-shade"></div>
       <div class="ph-cap js-ph-cap"></div>
       <div class="ph-dots js-ph-dots"></div>
-    </div>
-
-    <div class="card" style="display:flex;flex-direction:column;gap:12px;flex-shrink:0">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="lbl">Kondapur · Now</div>
-        <div class="js-wx-updated tn" style="font-size:13px;color:var(--fainter)"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <span class="js-wx-icon"></span>
-        <div class="tn js-wx-temp" style="font-size:46px;font-weight:500;line-height:1">--°</div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-left:auto;align-items:flex-end">
-          <span class="pill js-aqi" style="display:none"></span>
-          <span class="pill js-uv" style="display:none"></span>
+      <div class="wx-shade"></div>
+      <div class="wx">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="lbl" style="color:#B9AFA3">Kondapur · Now</div>
+          <div class="js-wx-updated tn" style="font-size:13px;color:#8C8278"></div>
         </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span class="js-wx-icon"></span>
+          <div class="tn js-wx-temp" style="font-size:50px;font-weight:500;line-height:1">--°</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-left:auto;align-items:flex-end">
+            <span class="pill js-aqi" style="display:none"></span>
+            <span class="pill js-uv" style="display:none"></span>
+          </div>
+        </div>
+        <div style="height:1px;background:rgba(244,238,228,.14)"></div>
+        <div class="wx-row js-wx-today"></div>
+        <div class="wx-row js-wx-tmr"></div>
       </div>
-      <div style="height:1px;background:#2E2822"></div>
-      <div class="wx-row js-wx-today"></div>
-      <div class="wx-row js-wx-tmr"></div>
     </div>
-
-    <div class="card js-kitchen" style="display:flex;flex-direction:column;gap:9px;flex-grow:1;min-height:0;overflow:hidden"></div>
   </div>
 
   <div id="dim"></div>
@@ -223,13 +227,13 @@
     };
     const allDay = (title, who, color, off = 0, time = 'All day') => ({ title, allDay: true, start: base.getTime() + off * 864e5, end: base.getTime() + (off + 1) * 864e5, time, who, color });
     return {
-      today: [allDay('Hack Squat + Chest/Back', 'Me', '#F2A65A', 0, 'Gym'), ev('School bus', 8, 0, 'Rhea', '#7FB3FF'), ev('Client review', 10, 30, 'Me', '#F2A65A'), ev('Tuition', 16, 30, 'Lucky', '#7FB3FF')],
+      today: [ev('School bus', 8, 0, 'Rhea', '#7FB3FF'), ev('Client review', 10, 30, 'Me', '#F2A65A'), ev('Tuition', 16, 30, 'Lucky', '#7FB3FF')],
       tomorrow: [allDay('Diwali', 'All', '#E8E2D6', 1), ev('Weekly test', 7, 0, 'Rhea', '#7FB3FF', 1)],
       tasks: { today: ['Call plumber'], tomorrow: ['Gas cylinder booking'] },
       meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, jeera rice, bhindi', prep: 'Soak moong dal tonight' }, tomorrow: { breakfast: 'Pesarattu', lunch: 'Curd rice', dinner: 'Biryani', prep: '' } },
       todos: ['Pay internet bill'], shopping: ['Curd', 'Bananas', 'Coriander'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: 'Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
-      message: 'Proud of you, champ!', pack: 'Hall ticket', photos: [],
+      message: 'Proud of you, champ!', pack: 'Hall ticket', photos: [], workout: { title: 'Hack Squat + Chest/Back' },
     };
   }
 
@@ -315,7 +319,6 @@
   function render() {
     renderLeft();
     renderWeather();
-    renderKitchen();
     if (data) syncPhotos(data.photos || []);
     renderStatus();
   }
@@ -335,7 +338,7 @@
     set('.js-hero-meta', metaParts.join('<span style="color:#5E564D">·</span>'));
 
     // Today: everything not in the hero, not finished
-    const today = (data.today || []).filter(e => e !== h.e && (e.allDay || e.end > now)).slice(0, 4);
+    const today = (data.today || []).filter(e => e !== h.e && e.time !== 'Gym' && (e.allDay || e.end > now)).slice(0, 4);
     set('.js-today', today.length ? today.map(e => evRow(e, true)).join('') : '<div class="empty">Nothing else today</div>');
 
     const rT = [];
@@ -347,18 +350,22 @@
     }
     (data.tasks?.today || []).forEach(t => rT.push([t, '']));
     (data.todos || []).forEach(t => rT.push([t, 'dim']));
+    if ((data.shopping || []).length) rT.push(['Buy: ' + data.shopping.join(', '), 'dim']);
     set('.js-remind-today', remindBlock(rT.slice(0, Math.max(2, 7 - today.length))));
 
     const t = new Date(now + 864e5);
     set('.js-tmr-label', `Tomorrow · ${DAYS[t.getDay()].slice(0, 3)}`);
     const heroIsTmr = h.e && (data.tomorrow || []).includes(h.e);
-    const tmr = (data.tomorrow || []).filter(e => !(heroIsTmr && e === h.e)).slice(0, 4);
+    const tmr = (data.tomorrow || []).filter(e => !(heroIsTmr && e === h.e) && e.time !== 'Gym').slice(0, 4);
     set('.js-tomorrow', tmr.length ? tmr.map(e => evRow(e, false)).join('') : '<div class="empty">Nothing planned</div>');
     const rM = [];
     if (data.pack) rM.push([`Pack: ${data.pack}`, '']);
     if (wx && wx.tRain >= RAIN_NUDGE) rM.push([`Umbrella · ${wx.tRain}% rain`, 'act']);
     (data.tasks?.tomorrow || []).forEach(x => rM.push([x, '']));
     set('.js-remind-tmr', remindBlock(rM.slice(0, Math.max(2, 7 - tmr.length))));
+
+    const w = data.workout;
+    set('.js-workout', w && w.title ? `<span class="lbl" style="flex-shrink:0">Next workout</span>${chip('Me')}<span style="font-size:22px;overflow:hidden;text-overflow:ellipsis">${esc(w.title)}</span>${w.stale ? '<span style="font-size:15px;color:var(--fainter)">sync overdue</span>' : ''}` : '');
 
     const cds = (data.countdowns || []).slice(0, 3);
     set('.js-countdowns', cds.length ? cds.map(c => {
@@ -444,7 +451,7 @@
       const a = $('.js-ph-a'), b = $('.js-ph-b');
       const [show, hide] = photoLayer ? [a, b] : [b, a];
       const w = p.w || img.naturalWidth, h = p.h || img.naturalHeight;
-      show.classList.toggle('portrait', h > w * 0.9);
+      show.classList.toggle('landscape', w > h * 1.1);
       show.querySelector('.ph-bg').style.backgroundImage = `url("${url}")`;
       show.querySelector('.ph-fg').style.backgroundImage = `url("${url}")`;
       show.classList.add('show'); hide.classList.remove('show');
