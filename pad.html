@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#171411">
+<title>Fridge (Pad)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #171411; --card: #211C18; --rule: #2C2620; --text: #F4EEE4; --soft: #C9C0B3;
+    --muted: #9C9286; --faint: #7A7167; --fainter: #5F574E; --accent: #E9A23B;
+    --serif: Fraunces, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #171411; overflow: hidden;
+    font-family: Inter, system-ui, -apple-system, sans-serif; color: var(--text);
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none; touch-action: manipulation; overscroll-behavior: none; }
+  .tn { font-variant-numeric: tabular-nums; }
+  #stage { position: absolute; top: 0; left: 0; width: 1204px; height: 860px; transform-origin: 0 0;
+    background: var(--bg); padding: 40px 48px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 40px; overflow: hidden; }
+  .lbl { font-size: 15px; font-weight: 600; letter-spacing: 3.5px; color: var(--faint); text-transform: uppercase; }
+  .sub { font-size: 14px; font-weight: 600; letter-spacing: 3px; color: var(--fainter); margin-top: 4px; }
+  .chip { width: 28px; height: 28px; border-radius: 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .row { display: flex; align-items: center; gap: 12px; font-size: 22px; white-space: nowrap; overflow: hidden; min-height: 28px; }
+  .row .t { color: var(--muted); width: 78px; flex-shrink: 0; }
+  .row .n { white-space: normal; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .row.act { color: var(--accent); font-weight: 500; }
+  .row.dim { color: var(--soft); }
+  .row.soon .t, .row.soon .n { color: var(--accent); }
+  .empty { font-size: 21px; color: var(--fainter); }
+  .card { border-radius: 20px; background: var(--card); padding: 18px 22px; }
+  .pill { padding: 3px 11px; border-radius: 999px; font-size: 15px; font-weight: 600; white-space: nowrap; }
+  svg.ic { fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  .left { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .cols { margin-top: 22px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; flex-grow: 1; min-height: 0; overflow: hidden; }
+  .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .cd-strip { padding-top: 18px; border-top: 1px solid var(--rule); display: flex; align-items: baseline; gap: 34px; white-space: nowrap; overflow: hidden; }
+  .cd { display: flex; align-items: baseline; gap: 10px; }
+  .cd .d { font-family: var(--serif); font-size: 46px; line-height: 1; }
+  .cd .l { font-size: 21px; }
+
+  .right { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .photo { position: relative; flex-grow: 1; min-height: 0; border-radius: 22px; overflow: hidden; background: #2A241F; }
+  .ph { position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease; }
+  .ph.show { opacity: 1; }
+  .ph-bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: brightness(.55); }   /* tiny thumbnail, upscaled = free blur */
+  .ph-fg { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
+  .ph.landscape .ph-fg { background-size: contain; background-position: center 30%; }
+  .ph-shade { position: absolute; left: 0; right: 0; top: 0; height: 90px; background: linear-gradient(to bottom, rgba(16,13,11,.55), rgba(16,13,11,0)); }
+  .wx-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 340px; background: linear-gradient(to top, rgba(16,13,11,.94) 0%, rgba(16,13,11,.80) 55%, rgba(16,13,11,0) 100%); pointer-events: none; }
+  .wx { position: absolute; left: 24px; right: 24px; bottom: 22px; display: flex; flex-direction: column; gap: 12px; }
+  .js-workout { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-top: 1px solid var(--rule); white-space: nowrap; overflow: hidden; }
+  .js-workout:empty { display: none; }
+  .ph-cap { position: absolute; left: 22px; top: 20px; font-size: 13px; font-weight: 600; letter-spacing: 2.5px; color: #E6DDD1; text-transform: uppercase; }
+  .ph-dots { position: absolute; right: 22px; top: 25px; display: flex; gap: 5px; }
+  .ph-dots span { width: 5px; height: 5px; border-radius: 3px; background: rgba(244,238,228,.45); transition: width .4s; }
+  .ph-dots span.on { width: 16px; background: var(--text); }
+  .ph-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #8C8278; text-align: center; padding: 20px; }
+  .wx-row { display: grid; grid-template-columns: 104px 28px 1fr auto; align-items: center; gap: 8px; font-size: 20px; }
+
+  #dim { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 2s; }
+  .status { position: absolute; right: 18px; bottom: 8px; font-size: 13px; color: var(--fainter); }
+  .banner { position: absolute; left: 0; right: 0; top: 0; padding: 6px 48px; font-size: 15px; background: #3A2A10; color: #F2C27A; }
+  @media (prefers-reduced-motion: reduce) { .ph { transition: none; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="left">
+    <div style="display:flex;align-items:baseline;gap:18px">
+      <div class="tn js-clock" style="font-size:50px;font-weight:500;letter-spacing:-1.5px;line-height:1"></div>
+      <div class="js-date" style="font-size:23px;color:var(--muted)"></div>
+    </div>
+
+    <div style="margin-top:30px;display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div class="lbl js-hero-eyebrow" style="color:var(--accent)"></div>
+      <div class="js-hero-title" style="font-family:var(--serif);font-weight:400;font-size:68px;line-height:1.02;letter-spacing:-1.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div class="js-hero-meta" style="display:flex;align-items:center;gap:12px;font-size:24px;color:var(--soft);margin-top:6px;min-height:28px"></div>
+    </div>
+
+    <div style="margin-top:26px;height:1px;background:var(--rule)"></div>
+
+    <div class="cols">
+      <div class="col">
+        <div class="lbl">Today</div>
+        <div class="col js-today" style="gap:12px"></div>
+        <div class="col js-remind-today" style="gap:12px"></div>
+      </div>
+      <div class="col">
+        <div class="lbl js-tmr-label">Tomorrow</div>
+        <div class="col js-tomorrow" style="gap:12px"></div>
+        <div class="col js-remind-tmr" style="gap:12px"></div>
+      </div>
+    </div>
+
+    <div class="js-workout"></div>
+
+    <div class="cd-strip"><div class="lbl" style="flex-shrink:0">Countdown</div><div class="js-countdowns" style="display:flex;gap:34px;align-items:baseline"></div></div>
+  </div>
+
+  <div class="right">
+    <div class="photo js-photo">
+      <div class="ph js-ph-a"><div class="ph-bg"></div><div class="ph-fg"></div></div>
+      <div class="ph js-ph-b"><div class="ph-bg"></div><div class="ph-fg"></div></div>
+      <div class="ph-empty js-ph-empty">Add photos to the Drive folder to fill this frame</div>
+      <div class="ph-shade"></div>
+      <div class="ph-cap js-ph-cap"></div>
+      <div class="ph-dots js-ph-dots"></div>
+      <div class="wx-shade"></div>
+      <div class="wx">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="lbl" style="color:#B9AFA3">Kondapur · Now</div>
+          <div class="js-wx-updated tn" style="font-size:13px;color:#8C8278"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span class="js-wx-icon"></span>
+          <div class="tn js-wx-temp" style="font-size:50px;font-weight:500;line-height:1">--°</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-left:auto;align-items:flex-end">
+            <span class="pill js-aqi" style="display:none"></span>
+            <span class="pill js-uv" style="display:none"></span>
+          </div>
+        </div>
+        <div style="height:1px;background:rgba(244,238,228,.14)"></div>
+        <div class="wx-row js-wx-today"></div>
+        <div class="wx-row js-wx-tmr"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dim"></div>
+  <div class="status js-status"></div>
+  <div class="banner js-banner" hidden>Showing sample data. Open with ?api=YOUR_EXEC_URL&amp;key=YOUR_KEY to connect.</div>
+</div>
+
+<script>
+(() => {
+  // ---------- Settings ----------
+  const LAT_DEFAULT = 17.465, LON_DEFAULT = 78.361;     // Kondapur, Hyderabad
+  const NIGHT_FROM = 22, NIGHT_TO = 6;                   // dim between these hours
+  // Fully Kiosk (PLUS) brightness: 0-255, or -1 = leave the device default
+  const DAY_LEVEL = -1, NIGHT_LEVEL = 25, NIGHT_CAP = 60;
+  const F = (typeof window.fully !== 'undefined') ? window.fully : null;   // null in a normal browser
+  const RAIN_NUDGE = 60, HOT_NUDGE = 38, AQI_NUDGE = 200, UV_NUDGE = 8, SOON_MIN = 60, CD_ALERT_DAYS = 3;
+  const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
+
+  // ---------- Config from URL, remembered on device ----------
+  const qs = new URLSearchParams(location.search);
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('dash-config') || '{}'); } catch (e) {}
+  ['api', 'key', 'lat', 'lon', 'light'].forEach(k => { if (qs.get(k)) cfg[k] = qs.get(k); });
+  if (qs.get('reset')) cfg = {};
+  try { localStorage.setItem('dash-config', JSON.stringify(cfg)); } catch (e) {}
+  const LAT = parseFloat(cfg.lat) || LAT_DEFAULT, LON = parseFloat(cfg.lon) || LON_DEFAULT;
+  const DEMO = qs.get('demo') === '1' || !cfg.api || !cfg.key;
+  const LIGHT_AUTO = cfg.light === '1';   // opt-in: ambient-light auto brightness (add ?light=1 once, after checking ?debug=1)
+
+  // ---------- Helpers ----------
+  const $ = s => document.querySelector(s);
+  const set = (s, html) => { const el = $(s); if (el && el.innerHTML !== html) el.innerHTML = html; };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const hm = d => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const ampm = d => `${hm(d)} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
+
+  // People chips: same person → same colour everywhere
+  const PALETTE = ['#9CC4FF', '#A6E0C6', '#D7B4F0', '#F5A08F', '#E8D36B', '#8FD0E0'];
+  function personStyle(who, fallback) {
+    const w = String(who || '').trim();
+    if (!w) return null;
+    if (/^me$/i.test(w)) return { label: 'Me', color: '#F2B47A', name: 'Me' };
+    if (/^(all|family)$/i.test(w)) return { label: 'All', color: '#E8E2D6', name: 'Everyone' };
+    if (/^kids$/i.test(w)) return { label: 'K', color: fallback || '#9CC4FF', name: 'Kids' };
+    let h = 0; for (const ch of w.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return { label: w[0].toUpperCase(), color: PALETTE[h % PALETTE.length], name: w };
+  }
+  const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  function chip(who, fallback) {
+    const p = personStyle(who, fallback);
+    if (!p) return '<span class="chip" style="background:rgba(232,226,214,.08)"></span>';
+    return `<span class="chip" style="background:${hexA(p.color, .18)};color:${p.color};font-size:${p.label.length > 1 ? 13 : 14}px">${esc(p.label)}</span>`;
+  }
+  function splitWho(label) {
+    const m = /^\s*([^·]{1,14}?)\s*·\s+(.+)$/.exec(String(label || ''));
+    return m ? { who: m[1].trim(), title: m[2].trim() } : { who: '', title: String(label || '') };
+  }
+
+  const ICONS = {
+    sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
+    moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    cloud: '<path d="M7 18a4.5 4.5 0 1 1 1.2-8.8A5.5 5.5 0 0 1 18.5 11 3.5 3.5 0 0 1 18 18H7z"/>',
+    rain: '<path d="M7 15a4.5 4.5 0 1 1 1.2-8.8A5.5 5.5 0 0 1 18.5 8 3.5 3.5 0 0 1 18 15H7z"/><path d="M9 18l-1 2.5M13 18l-1 2.5M17 18l-1 2.5"/>',
+  };
+  const iconName = (code, day = 1) => code == null ? 'cloud' : code <= 1 ? (day ? 'sun' : 'moon') : code <= 48 ? 'cloud' : 'rain';
+  const svg = (name, size, color) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" stroke="${color}" aria-hidden="true">${ICONS[name]}</svg>`;
+
+  // Indian AQI (CPCB) from 24-h average PM2.5 / PM10
+  const BP = {
+    pm25: [[0, 30, 0, 50], [31, 60, 51, 100], [61, 90, 101, 200], [91, 120, 201, 300], [121, 250, 301, 400], [251, 500, 401, 500]],
+    pm10: [[0, 50, 0, 50], [51, 100, 51, 100], [101, 250, 101, 200], [251, 350, 201, 300], [351, 430, 301, 400], [431, 600, 401, 500]],
+  };
+  function subIndex(c, table) {
+    if (c == null || isNaN(c)) return null;
+    const x = Math.round(c);
+    for (const [lo, hi, ilo, ihi] of table) if (x <= hi) return Math.round(ilo + (ihi - ilo) * (Math.max(x, lo) - lo) / (hi - lo));
+    return 500;
+  }
+  const aqiCat = a => a <= 50 ? ['Good', '#8FD3B6'] : a <= 100 ? ['Satisfactory', '#C5DB7A'] : a <= 200 ? ['Moderate', '#E8D36B'] : a <= 300 ? ['Poor', '#F2A65A'] : a <= 400 ? ['Very poor', '#F28C7A'] : ['Severe', '#E86A6A'];
+  const uvCat = u => u < 3 ? ['Low', '#8FD3B6'] : u < 6 ? ['Moderate', '#E8D36B'] : u < 8 ? ['High', '#F2A65A'] : u < 11 ? ['Very high', '#F28C7A'] : ['Extreme', '#D7B4F0'];
+
+  // ---------- State ----------
+  let data = null, wx = null, lastOk = 0;
+  try { wx = JSON.parse(localStorage.getItem('dash-wx') || 'null'); } catch (e) {}   // last known weather survives an offline reboot
+  let photos = [], photoKey = '', photoIdx = 0, photoLayer = 0;
+
+  // ---------- Sample data ----------
+  function sample() {
+    const base = new Date(); base.setHours(0, 0, 0, 0);
+    const ev = (title, h, m, who, color, off = 0) => {
+      const s = base.getTime() + off * 864e5 + (h * 60 + m) * 60e3;
+      return { title, allDay: false, start: s, end: s + 3600e3, time: hm(new Date(s)), who, color };
+    };
+    const allDay = (title, who, color, off = 0, time = 'All day') => ({ title, allDay: true, start: base.getTime() + off * 864e5, end: base.getTime() + (off + 1) * 864e5, time, who, color });
+    return {
+      today: [ev('School bus', 8, 0, 'Rhea', '#7FB3FF'), ev('Client review', 10, 30, 'Me', '#F2A65A'), ev('Tuition', 16, 30, 'Lucky', '#7FB3FF')],
+      tomorrow: [allDay('Diwali', 'All', '#E8E2D6', 1), ev('Weekly test', 7, 0, 'Rhea', '#7FB3FF', 1)],
+      tasks: { today: ['Call plumber'], tomorrow: ['Gas cylinder booking'], soon: ['Mon · Parent-teacher meeting'] },
+      meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, jeera rice, bhindi', prep: 'Soak moong dal tonight' }, tomorrow: { breakfast: 'Pesarattu', lunch: 'Curd rice', dinner: 'Biryani', prep: '' } },
+      todos: ['Pay internet bill'], shopping: ['Curd', 'Bananas', 'Coriander'],
+      countdowns: [{ label: 'Diwali', days: 1 }, { label: 'Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
+      message: 'Proud of you, champ!', pack: 'Hall ticket', photos: [], workout: { title: 'Hack Squat + Chest/Back' },
+    };
+  }
+
+  // ---------- Loading ----------
+  async function loadData() {
+    if (DEMO) { data = sample(); lastOk = Date.now(); render(); return; }
+    try {
+      const r = await fetch(`${cfg.api}?key=${encodeURIComponent(cfg.key)}`, { cache: 'no-store' });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      data = j; lastOk = Date.now();
+      try { localStorage.setItem('dash-data', JSON.stringify({ t: lastOk, j })); } catch (e) {}
+    } catch (e) {
+      if (!data) { try { const c = JSON.parse(localStorage.getItem('dash-data')); if (c) { data = c.j; lastOk = c.t; } } catch (e2) {} }
+      console.warn('Data load failed', e);
+    }
+    render();
+  }
+
+  async function loadWeather() {
+    const next = { ...(wx || {}) };
+    try {
+      const f = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+        `&current=temperature_2m,weather_code,is_day,uv_index` +
+        `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,uv_index_max` +
+        `&timezone=Asia%2FKolkata&forecast_days=2`, { cache: 'no-store' }).then(r => r.json());
+      Object.assign(next, {
+        temp: Math.round(f.current.temperature_2m), code: f.current.weather_code, day: f.current.is_day, uv: f.current.uv_index,
+        hi: Math.round(f.daily.temperature_2m_max[0]), lo: Math.round(f.daily.temperature_2m_min[0]),
+        rain: f.daily.precipitation_probability_max[0] ?? 0, dCode: f.daily.weather_code[0], uvMax: f.daily.uv_index_max[0],
+        tHi: Math.round(f.daily.temperature_2m_max[1]), tLo: Math.round(f.daily.temperature_2m_min[1]),
+        tRain: f.daily.precipitation_probability_max[1] ?? 0, tCode: f.daily.weather_code[1],
+        at: Date.now(),
+      });
+    } catch (e) { console.warn('Weather failed', e); }
+    try {
+      const a = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}` +
+        `&hourly=pm2_5,pm10&past_days=1&forecast_days=1&timezone=Asia%2FKolkata`, { cache: 'no-store' }).then(r => r.json());
+      const now = new Date();
+      const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
+      const idx = a.hourly.time.map((t, i) => [t, i]).filter(([t]) => t <= nowKey).slice(-24).map(([, i]) => i);
+      const avg = arr => { const v = idx.map(i => arr[i]).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+      const s25 = subIndex(avg(a.hourly.pm2_5), BP.pm25), s10 = subIndex(avg(a.hourly.pm10), BP.pm10);
+      const vals = [s25, s10].filter(x => x != null);
+      next.aqi = vals.length ? Math.max(...vals) : null;
+    } catch (e) { console.warn('AQI failed', e); }
+    if (next.at) { wx = next; try { localStorage.setItem('dash-wx', JSON.stringify(next)); } catch (e) {} }
+    render();
+  }
+
+  // ---------- Rendering ----------
+  function heroPick(now) {
+    const today = (data?.today || []).filter(e => !e.allDay);
+    const live = today.find(e => e.start <= now && e.end > now);
+    if (live) return { e: live, eyebrow: `Now · until ${hm(new Date(live.end))}`, soon: true };
+    const nxt = today.find(e => e.start > now);
+    if (nxt) {
+      const mins = Math.round((nxt.start - now) / 60e3);
+      return { e: nxt, eyebrow: mins <= SOON_MIN ? `Next · in ${mins} min` : `Next · ${ampm(new Date(nxt.start))}`, soon: mins <= SOON_MIN };
+    }
+    const tmr = (data?.tomorrow || []).find(e => !e.allDay);
+    if (tmr) return { e: tmr, eyebrow: `Tomorrow · ${ampm(new Date(tmr.start))}`, soon: false };
+    const cd = (data?.countdowns || [])[0];
+    if (cd) { const p = splitWho(cd.label); return { e: { title: p.title, who: p.who }, eyebrow: 'Coming up', meta: cd.days === 0 ? 'Today' : cd.days === 1 ? 'Tomorrow' : `In ${cd.days} days`, soon: false }; }
+    return { e: { title: data?.message || 'A quiet day' }, eyebrow: 'Today', soon: false };
+  }
+
+  function evRow(e, live) {
+    const now = Date.now();
+    let cls = 'row', time = esc(e.time);
+    if (live && !e.allDay) {
+      const mins = Math.round((e.start - now) / 60e3);
+      if (mins > 0 && mins <= 30) { cls += ' soon'; time = `in ${mins}m`; }
+    }
+    return `<div class="${cls}">${chip(e.who, e.color)}<span class="t tn">${time}</span><span class="n">${esc(e.title)}</span></div>`;
+  }
+
+  function remindBlock(items) {
+    if (!items.length) return '';
+    return '<div class="sub">REMIND</div>' + items.map(([txt, kind]) => `<div class="row ${kind || ''}"><span class="n">${esc(txt)}</span></div>`).join('');
+  }
+
+  function render() {
+    renderLeft();
+    renderWeather();
+    if (data) syncPhotos(data.photos || []);
+    renderStatus();
+  }
+
+  function renderLeft() {
+    if (!data) return;
+    const now = Date.now();
+    const h = heroPick(now);
+    set('.js-hero-eyebrow', esc(h.eyebrow));
+    $('.js-hero-eyebrow').style.color = h.soon ? 'var(--accent)' : 'var(--faint)';
+    set('.js-hero-title', esc(h.e.title));
+    const p = personStyle(h.e.who, h.e.color);
+    const metaParts = [];
+    if (h.meta) metaParts.push(esc(h.meta));
+    else if (h.e.start && !h.e.allDay) metaParts.push(`<span class="tn">${esc(h.e.time)}</span>`);
+    if (p) metaParts.push(`<span style="display:inline-flex;align-items:center;gap:10px">${chip(h.e.who, h.e.color)}${esc(p.name)}</span>`);
+    set('.js-hero-meta', metaParts.join('<span style="color:#5E564D">·</span>'));
+
+    // Today: everything not in the hero, not finished
+    const today = (data.today || []).filter(e => e !== h.e && e.time !== 'Gym' && (e.allDay || e.end > now)).slice(0, 4);
+    set('.js-today', today.length ? today.map(e => evRow(e, true)).join('') : '<div class="empty">Nothing else today</div>');
+
+    const rT = [];
+    if (wx) {
+      if (wx.rain >= RAIN_NUDGE) rT.push([`Umbrella · ${wx.rain}% rain today`, 'act']);
+      if (wx.hi >= HOT_NUDGE) rT.push(['Hot day · carry water', 'act']);
+      if (wx.uvMax >= UV_NUDGE && new Date().getHours() < 15) rT.push([`UV ${Math.round(wx.uvMax)} at midday · sunscreen`, 'act']);
+      if (wx.aqi != null && wx.aqi > AQI_NUDGE) rT.push(['Poor air · keep windows shut', 'act']);
+    }
+    (data.tasks?.today || []).forEach(t => rT.push([t, '']));
+    (data.tasks?.open || []).forEach(t => rT.push([t, '']));   // undated tasks from the Fridge list
+    (data.tasks?.soon || []).forEach(t => rT.push([t, '']));   // Fridge tasks due in the next few days ("Mon · …")
+    (data.todos || []).forEach(t => rT.push([t, 'dim']));
+    if ((data.shopping || []).length) rT.push(['Buy: ' + data.shopping.join(', '), 'dim']);
+    set('.js-remind-today', remindBlock(rT.slice(0, Math.max(2, 7 - today.length))));
+
+    const t = new Date(now + 864e5);
+    set('.js-tmr-label', `Tomorrow · ${DAYS[t.getDay()].slice(0, 3)}`);
+    const heroIsTmr = h.e && (data.tomorrow || []).includes(h.e);
+    const tmr = (data.tomorrow || []).filter(e => !(heroIsTmr && e === h.e) && e.time !== 'Gym').slice(0, 4);
+    set('.js-tomorrow', tmr.length ? tmr.map(e => evRow(e, false)).join('') : '<div class="empty">Nothing planned</div>');
+    const rM = [];
+    if (data.pack) rM.push([`Pack: ${data.pack}`, '']);
+    if (wx && wx.tRain >= RAIN_NUDGE) rM.push([`Umbrella · ${wx.tRain}% rain`, 'act']);
+    (data.tasks?.tomorrow || []).forEach(x => rM.push([x, '']));
+    set('.js-remind-tmr', remindBlock(rM.slice(0, Math.max(2, 7 - tmr.length))));
+
+    const w = data.workout;
+    set('.js-workout', w && w.title ? `<span class="lbl" style="flex-shrink:0">Next workout</span>${chip('Me')}<span style="font-size:22px;overflow:hidden;text-overflow:ellipsis">${esc(w.title)}</span>${w.stale ? '<span style="font-size:15px;color:var(--fainter)">sync overdue</span>' : ''}` : '');
+
+    const cds = (data.countdowns || []).slice(0, 3);
+    set('.js-countdowns', cds.length ? cds.map(c => {
+      const p2 = splitWho(c.label), ps = personStyle(p2.who);
+      const alert = c.days <= CD_ALERT_DAYS;
+      const num = c.days === 0 ? 'Today' : c.days;
+      return `<div class="cd"><span class="d tn" style="${alert ? 'color:var(--accent)' : ''}">${num}</span><span class="l">${esc(p2.title)}${ps ? ` <span style="color:${ps.color}">· ${esc(ps.label)}</span>` : ''}</span></div>`;
+    }).join('') : '<span class="empty">Add tests and events from the form</span>');
+  }
+
+  function renderWeather() {
+    if (!wx) return;
+    set('.js-wx-icon', svg(iconName(wx.code, wx.day), 40, wx.day ? '#E9A23B' : '#C9C0B3'));
+    set('.js-wx-temp', `${wx.temp}°`);
+    set('.js-wx-updated', wx.at ? hm(new Date(wx.at)) : '');
+    const aqiEl = $('.js-aqi'), uvEl = $('.js-uv');
+    if (wx.aqi != null) {
+      const [cat, col] = aqiCat(wx.aqi);
+      aqiEl.style.display = ''; aqiEl.style.background = hexA(col, .15); aqiEl.style.color = col;
+      aqiEl.textContent = `AQI ${wx.aqi} · ${cat}`;
+    }
+    if (wx.uv != null) {
+      const u = Math.round(wx.uv), [cat, col] = uvCat(u);
+      uvEl.style.display = ''; uvEl.style.background = hexA(col, .15); uvEl.style.color = col;
+      uvEl.textContent = `UV ${u} · ${cat}`;
+    }
+    const row = (label, code, hi, lo, rain) =>
+      `<span style="color:var(--muted)">${label}</span>${svg(iconName(code), 24, '#C9C0B3')}` +
+      `<span class="tn">${hi}° <span style="color:var(--muted)">/ ${lo}°</span></span>` +
+      `<span class="tn" style="color:${rain >= RAIN_NUDGE ? 'var(--accent)' : 'var(--muted)'}">${rain}%</span>`;
+    set('.js-wx-today', row('Today', wx.dCode, wx.hi, wx.lo, wx.rain));
+    set('.js-wx-tmr', row('Tomorrow', wx.tCode, wx.tHi, wx.tLo, wx.tRain));
+  }
+
+  function renderKitchen() {
+    if (!data) return;
+    const mt = data.meals?.today, mm = data.meals?.tomorrow;
+    const lines = ['<div class="lbl">Kitchen</div>'];
+    lines.push(`<div style="font-size:20px"><span style="color:var(--muted)">Dinner</span>&nbsp; ${esc(mt?.dinner || 'Not planned')}</div>`);
+    const tm = [mm?.breakfast, mm?.lunch].filter(Boolean);
+    if (tm.length) lines.push(`<div style="font-size:20px"><span style="color:var(--muted)">Tomorrow</span>&nbsp; ${tm.map(esc).join(' · ')}</div>`);
+    if (mt?.prep) lines.push(`<div style="font-size:19px;color:var(--accent)">${esc(mt.prep)}</div>`);
+    const buy = data.shopping || [];
+    lines.push(`<div style="font-size:19px;color:var(--soft)">${buy.length ? 'Buy: ' + buy.map(esc).join(', ') : 'Shopping list is empty'}</div>`);
+    set('.js-kitchen', lines.join(''));
+  }
+
+  function batteryNote() {
+    if (!F) return '';
+    try { if (!F.isPlugged()) return `Not charging · ${Math.round(F.getBatteryLevel())}%`; } catch (e) {}
+    return '';
+  }
+
+  function renderStatus() {
+    const el = $('.js-status');
+    const parts = [];
+    if (!DEMO) {
+      const age = Date.now() - lastOk;
+      if (!lastOk) parts.push('Not connected');
+      else if (age > 30 * 60e3) parts.push(`Offline · last updated ${hm(new Date(lastOk))}`);
+    }
+    const bn = batteryNote();
+    if (bn) parts.push(bn);
+    el.textContent = parts.join(' · ');
+    el.style.color = bn ? 'var(--accent)' : '';
+  }
+
+  function isNight() { const h = new Date().getHours(); return h >= NIGHT_FROM || h < NIGHT_TO; }
+
+  function tick() {
+    const now = new Date();
+    set('.js-clock', hm(now));
+    set('.js-date', `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`);
+    $('#dim').style.opacity = (!F && isNight()) ? '0.62' : '0';
+    if (now.getSeconds() < 10) renderLeft();   // keep "in N min" current, once a minute
+    renderStatus();
+  }
+
+  // ---------- Photos ----------
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function syncPhotos(list) {
+    const norm = list.map(p => typeof p === 'string' ? { id: p } : p).filter(p => p && p.id);
+    const key = norm.map(p => p.id).sort().join();
+    if (key === photoKey) return;
+    photoKey = key; photos = shuffle(norm); photoIdx = 0;
+    $('.js-ph-empty').style.display = photos.length ? 'none' : 'flex';
+    if (photos.length) nextPhoto();
+  }
+  const photoDate = t => { const m = /^(\d{4})-(\d{2})/.exec(t || ''); return m ? `${MONTHS[parseInt(m[2], 10) - 1]} ${m[1]}` : ''; };
+  function nextPhoto() {
+    if (!photos.length || (isNight() && photoIdx > 0)) return;   // pause the slider at night
+    const i = photoIdx++ % photos.length, p = photos[i];
+    const url = `https://drive.google.com/thumbnail?id=${encodeURIComponent(p.id)}&sz=w1600`;
+    const tiny = `https://drive.google.com/thumbnail?id=${encodeURIComponent(p.id)}&sz=w64`;
+    const img = new Image();
+    img.onload = () => {
+      const a = $('.js-ph-a'), b = $('.js-ph-b');
+      const [show, hide] = photoLayer ? [a, b] : [b, a];
+      const w = p.w || img.naturalWidth, h = p.h || img.naturalHeight;
+      show.classList.toggle('landscape', w > h * 1.1);
+      show.querySelector('.ph-bg').style.backgroundImage = `url("${tiny}")`;
+      show.querySelector('.ph-fg').style.backgroundImage = `url("${url}")`;
+      show.classList.add('show'); hide.classList.remove('show');
+      photoLayer = 1 - photoLayer;
+      set('.js-ph-cap', esc(photoDate(p.t)));
+      const n = Math.min(photos.length, 5);
+      set('.js-ph-dots', n > 1 ? Array.from({ length: n }, (_, k) => `<span class="${k === i % n ? 'on' : ''}"></span>`).join('') : '');
+    };
+    img.onerror = () => { if (photos.length > 1) setTimeout(nextPhoto, 2000); };
+    img.src = url;
+  }
+
+  // ---------- Layout ----------
+  // Fit to height, let the width flex: the layout fills the screen at any aspect ratio
+  // (OnePlus Pad Go is ~1.4:1). Below MIN_W (e.g. portrait) it scales to width instead.
+  const DESIGN_H = 860, MIN_W = 1100;
+  let fitScale = 1;
+  function fit() {
+    const W = innerWidth, H = innerHeight;
+    let s = H / DESIGN_H, w = W / s, h = DESIGN_H;
+    if (w < MIN_W) { s = W / MIN_W; w = MIN_W; h = H / s; }
+    const st = $('#stage');
+    st.style.width = w + 'px';
+    st.style.height = h + 'px';
+    st.style.transform = `scale(${s})`;
+    fitScale = s;
+  }
+  $('.js-photo').addEventListener('click', () => nextPhoto());   // tap the photo to skip
+
+  // ---------- Fully Kiosk integration (all no-ops in a normal browser) ----------
+  // Needs Fully PLUS + Settings > Advanced Web Settings > Enable JavaScript Interface.
+  let lastLevel = null;
+  function setLevel(level) {
+    if (!F || level === lastLevel) return;
+    try { F.setScreenBrightness(level); lastLevel = level; } catch (e) {}
+  }
+  function lightLevel() {            // ambient light -> 0-255, or null if unreadable
+    try {
+      const lux = parseFloat(F.getSensorValue(5));      // 5 = Android TYPE_LIGHT
+      if (!isFinite(lux) || lux < 0) return null;
+      const t = Math.min(1, Math.log10(lux + 1) / 3);   // 0 lux .. 1000 lux
+      return Math.round(20 + 235 * Math.pow(t, 1.6));
+    } catch (e) { return null; }
+  }
+  function applyBrightness() {
+    if (!F) return;
+    const l = LIGHT_AUTO ? lightLevel() : null;
+    if (l != null) setLevel(isNight() ? Math.min(l, NIGHT_CAP) : l);
+    else setLevel(isNight() ? NIGHT_LEVEL : DAY_LEVEL);
+  }
+  // On wake / approach / network return: refresh anything stale so it's current when someone looks
+  window.__fridgeRefresh = function () {
+    try {
+      if (Date.now() - lastOk > 60e3) loadData();
+      if (!wx || Date.now() - (wx.at || 0) > 5 * 60e3) loadWeather();
+      applyBrightness(); tick();
+    } catch (e) {}
+  };
+  if (F) {
+    ['screenOn', 'onMotion', 'internetReconnect', 'networkReconnect'].forEach(ev => {
+      try { F.bind(ev, '__fridgeRefresh();'); } catch (e) {}
+    });
+    try { F.bind('pluggedAC', 'renderStatusNow();'); F.bind('unplugged', 'renderStatusNow();'); } catch (e) {}
+    window.renderStatusNow = renderStatus;
+  }
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+  // ?debug=1 shows what the device really reports (send me a screenshot of this)
+  if (qs.get('debug')) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:absolute;left:14px;bottom:12px;z-index:9;font:13px/1.45 monospace;color:#C9C0B3;background:rgba(0,0,0,.72);padding:8px 12px;border-radius:8px;white-space:pre';
+    $('#stage').appendChild(d);
+    const g = (fn, dflt = '?') => { try { return fn(); } catch (e) { return dflt; } };
+    const upd = () => {
+      d.textContent = [
+        `viewport ${innerWidth}x${innerHeight} @${devicePixelRatio}x  scale ${fitScale.toFixed(2)}  ratio ${(innerWidth / innerHeight).toFixed(2)}`,
+        F ? `fully ${g(() => F.getFullyVersion())} / android ${g(() => F.getAndroidVersion())} / webview ${g(() => F.getWebviewVersion())}` : 'not running in Fully Kiosk',
+        F ? `model ${g(() => F.getDeviceModel())}  display ${g(() => F.getDisplayWidth())}x${g(() => F.getDisplayHeight())}` : '',
+        F ? `light sensor (lux) ${g(() => F.getSensorValue(5))}   brightness now ${g(() => F.getScreenBrightness())}   applied ${lastLevel}` : '',
+        F ? `battery ${g(() => F.getBatteryLevel())}   plugged ${g(() => F.isPlugged())}` : '',
+        `data age ${lastOk ? Math.round((Date.now() - lastOk) / 1000) + 's' : 'none'}   weather age ${wx && wx.at ? Math.round((Date.now() - wx.at) / 1000) + 's' : 'none'}`,
+      ].filter(Boolean).join('\n');
+    };
+    upd(); setInterval(upd, 4000);
+  }
+
+  // ---------- Start ----------
+  if (DEMO) $('.js-banner').hidden = false;
+  addEventListener('resize', fit); fit();
+  tick(); loadData(); loadWeather(); applyBrightness();
+  setInterval(tick, 10e3);
+  setInterval(applyBrightness, 60e3);
+  setInterval(loadData, DATA_EVERY);
+  setInterval(loadWeather, WX_EVERY);
+  setInterval(nextPhoto, PHOTO_EVERY);
+  setTimeout(() => location.reload(), RELOAD_EVERY);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadData(); loadWeather(); tick(); } });
+})();
+</script>
+</body>
+</html>
