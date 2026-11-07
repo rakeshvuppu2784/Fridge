@@ -19,7 +19,7 @@
     --serif: Fraunces, Georgia, serif;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+  html, body { margin: 0; height: 100%; background: #171411; overflow: hidden;
     font-family: Inter, system-ui, -apple-system, sans-serif; color: var(--text);
     -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   .tn { font-variant-numeric: tabular-nums; }
@@ -458,9 +458,18 @@
   }
 
   // ---------- Layout ----------
+  // Keep the dashboard clear of the iPad status bar; the bar sits on the same colour as the page
+  const safeProbe = document.createElement('div');
+  safeProbe.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top, 0px);visibility:hidden;pointer-events:none';
+  document.body.appendChild(safeProbe);
   function fit() {
-    const s = Math.min(innerWidth / 1180, innerHeight / 820);
-    $('#stage').style.transform = `translate(-50%, -50%) scale(${s})`;
+    let top = safeProbe.offsetHeight || 0;
+    if (!top && navigator.standalone) top = 24;
+    const h = innerHeight - top;
+    const s = Math.min(innerWidth / 1180, h / 820);
+    const st = $('#stage');
+    st.style.top = (top + h / 2) + 'px';
+    st.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
   }
   $('.js-photo').addEventListener('click', () => nextPhoto());   // tap the photo to skip
 
