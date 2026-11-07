@@ -139,6 +139,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
+  const BUILD = '20261108b';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -644,6 +645,18 @@
     clearTimeout(confettiTimer); confettiTimer = setTimeout(() => { $('#confetti').innerHTML = ''; }, CONFETTI_FOR);
   }
 
+  // ---------- Self-update: pick up new releases without anyone touching the tablet ----------
+  let lastCheck = Date.now();
+  async function checkForUpdate() {
+    lastCheck = Date.now();
+    try {
+      const t = await fetch(location.pathname + '?chk=' + Date.now(), { cache: 'no-store' }).then(r => r.text());
+      const m = /const BUILD = '([^']+)'/.exec(t);
+      if (m && m[1] !== BUILD) location.reload();
+    } catch (e) {}
+  }
+  window.__checkUpdate = checkForUpdate;
+
   // ---------- Layout ----------
   const DESIGN_H = 860, MIN_W = 1100;
   let fitScale = 1, fitMode = 'window';
@@ -679,7 +692,8 @@
     try {
       if (Date.now() - lastOk > 60e3) loadData();
       if (!wx || Date.now() - (wx.at || 0) > 5 * 60e3) loadWeather();
-      applyBrightness(); render(); maybeCelebrate();
+      applyBrightness(); tick(); render(); maybeCelebrate();
+      if (Date.now() - lastCheck > 5 * 60e3) checkForUpdate();
     } catch (e) {}
   };
   if (F) {
@@ -702,7 +716,7 @@
         F ? `fully ${g(() => F.getFullyVersion())} / android ${g(() => F.getAndroidVersion())} / webview ${g(() => F.getWebviewVersion())}` : 'not running in Fully Kiosk',
         F ? `light sensor (lux) ${g(() => F.getSensorValue(5))}   brightness now ${g(() => F.getScreenBrightness())}   applied ${lastLevel}` : '',
         F ? `battery ${g(() => F.getBatteryLevel())}   plugged ${g(() => F.isPlugged())}` : '',
-        `sun ${fmtH(SR())} to ${fmtH(SS())}   data age ${lastOk ? Math.round((Date.now() - lastOk) / 1000) + 's' : 'none'}   weather age ${wx && wx.at ? Math.round((Date.now() - wx.at) / 1000) + 's' : 'none'}`,
+        `build ${BUILD}   sun ${fmtH(SR())} to ${fmtH(SS())}   data age ${lastOk ? Math.round((Date.now() - lastOk) / 1000) + 's' : 'none'}   weather age ${wx && wx.at ? Math.round((Date.now() - wx.at) / 1000) + 's' : 'none'}`,
       ].filter(Boolean).join('\n');
     };
     upd(); setInterval(upd, 4000);
@@ -714,6 +728,7 @@
   tick(); loadData(); loadWeather(); applyBrightness();
   setInterval(tick, 10e3);
   setInterval(applyBrightness, 60e3);
+  setInterval(checkForUpdate, 10 * 60e3);
   setInterval(loadData, DATA_EVERY);
   setInterval(loadWeather, WX_EVERY);
   setInterval(nextPhoto, PHOTO_EVERY);
