@@ -139,7 +139,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = '20261108b';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = '20261108c';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -438,7 +438,11 @@
     (data.tasks?.open || []).forEach(t => a.push(prow(t)));
     (data.tasks?.soon || []).forEach(t => a.push(prow(String(t).replace(' · ', ', '))));
     (data.todos || []).forEach(t => a.push(prow(t, 'dim')));
-    if ((data.shopping || []).length) a.push(prow('Buy ' + data.shopping.join(', '), 'dim'));
+    // a shopping item that a dated reminder already covers ("Sweets" vs "Buy Sweets") is shown once, on its date
+    const flat = x => String(x).toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    const covered = [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.tasks?.soon || []), ...(data.tasks?.tomorrow || []), ...(data.todos || [])].map(flat);
+    const shopping = (data.shopping || []).filter(it => { const n = flat(it); return n.length < 3 || !covered.some(t => t.includes(n)); });
+    if (shopping.length) a.push(prow('Buy ' + shopping.join(', '), 'dim'));
     set('.js-today', a.slice(0, 4).join('') || '<div class="row dim"><span class="n">Nothing else</span></div>');
 
     const t = new Date(nowD.getTime() + 864e5), r = [];
