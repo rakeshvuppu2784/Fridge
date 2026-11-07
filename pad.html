@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#171411">
 <title>Fridge (Pad)</title>
@@ -484,18 +484,32 @@
   // ---------- Layout ----------
   // Fit to height, let the width flex: the layout fills the screen at any aspect ratio
   // (OnePlus Pad Go is ~1.4:1). Below MIN_W (e.g. portrait) it scales to width instead.
+  // If the WebView is zoomed (e.g. Fully remembers a pinch-zoom) the visible area is smaller than
+  // innerWidth/innerHeight: use the visual viewport so nothing is clipped.
   const DESIGN_H = 860, MIN_W = 1100;
-  let fitScale = 1;
+  let fitScale = 1, fitMode = 'window';
+  function viewBox() {
+    const vv = window.visualViewport;
+    if (vv && vv.width > 0 && vv.height > 0 && (vv.width < innerWidth * 0.98 || vv.height < innerHeight * 0.98)) {
+      fitMode = 'visual';
+      return { W: vv.width, H: vv.height, x: vv.pageLeft || 0, y: vv.pageTop || 0 };
+    }
+    fitMode = 'window';
+    return { W: innerWidth, H: innerHeight, x: 0, y: 0 };
+  }
   function fit() {
-    const W = innerWidth, H = innerHeight;
+    const { W, H, x, y } = viewBox();
     let s = H / DESIGN_H, w = W / s, h = DESIGN_H;
     if (w < MIN_W) { s = W / MIN_W; w = MIN_W; h = H / s; }
     const st = $('#stage');
+    st.style.left = x + 'px';
+    st.style.top = y + 'px';
     st.style.width = w + 'px';
     st.style.height = h + 'px';
     st.style.transform = `scale(${s})`;
     fitScale = s;
   }
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); }
   $('.js-photo').addEventListener('click', () => nextPhoto());   // tap the photo to skip
 
   // ---------- Fully Kiosk integration (all no-ops in a normal browser) ----------
@@ -539,12 +553,14 @@
   // ?debug=1 shows what the device really reports (send me a screenshot of this)
   if (qs.get('debug')) {
     const d = document.createElement('div');
-    d.style.cssText = 'position:absolute;left:14px;bottom:12px;z-index:9;font:13px/1.45 monospace;color:#C9C0B3;background:rgba(0,0,0,.72);padding:8px 12px;border-radius:8px;white-space:pre';
+    d.style.cssText = 'position:absolute;left:48px;top:520px;z-index:9;font:13px/1.45 monospace;color:#C9C0B3;background:rgba(0,0,0,.78);padding:8px 12px;border-radius:8px;white-space:pre';
     $('#stage').appendChild(d);
     const g = (fn, dflt = '?') => { try { return fn(); } catch (e) { return dflt; } };
     const upd = () => {
       d.textContent = [
-        `viewport ${innerWidth}x${innerHeight} @${devicePixelRatio}x  scale ${fitScale.toFixed(2)}  ratio ${(innerWidth / innerHeight).toFixed(2)}`,
+        `window ${innerWidth}x${innerHeight} @${devicePixelRatio}x  ratio ${(innerWidth / innerHeight).toFixed(2)}`,
+        `visual ${window.visualViewport ? Math.round(visualViewport.width) + 'x' + Math.round(visualViewport.height) + ' zoom ' + visualViewport.scale.toFixed(2) : 'n/a'}   screen ${screen.width}x${screen.height}   html ${document.documentElement.clientWidth}x${document.documentElement.clientHeight}`,
+        `fit by ${fitMode}   stage scale ${fitScale.toFixed(3)}`,
         F ? `fully ${g(() => F.getFullyVersion())} / android ${g(() => F.getAndroidVersion())} / webview ${g(() => F.getWebviewVersion())}` : 'not running in Fully Kiosk',
         F ? `model ${g(() => F.getDeviceModel())}  display ${g(() => F.getDisplayWidth())}x${g(() => F.getDisplayHeight())}` : '',
         F ? `light sensor (lux) ${g(() => F.getSensorValue(5))}   brightness now ${g(() => F.getScreenBrightness())}   applied ${lastLevel}` : '',
