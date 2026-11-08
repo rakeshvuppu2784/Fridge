@@ -39,13 +39,6 @@
 
   /* B. hero */
   .hero { position: relative; z-index: 5; display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 20px; align-items: start; min-height: 64px; }
-  .fam { position: relative; z-index: 5; display: flex; gap: 22px; align-items: flex-start; }
-  .fam[hidden] { display: none; }
-  .fam .pp { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .fam .av { position: relative; width: 56px; height: 56px; border-radius: 28px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; }
-  .fam .bd { position: absolute; right: -8px; bottom: -6px; width: 32px; height: 32px; border-radius: 16px; background: rgba(10,12,24,.88); display: flex; align-items: center; justify-content: center; font-size: 18px; }
-  .fam .since { font-size: 18px; color: var(--dim); white-space: nowrap; }
-  .fam .stale { opacity: .45; }
   .tile { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; }
   .te { font-size: 36px; line-height: 1; }
   .td { display: block; width: 22px; height: 22px; border-radius: 11px; }
@@ -174,7 +167,6 @@
         <div class="hw js-wx"></div>
       </div>
       <div class="hero js-hero"></div>
-      <div class="fam js-fam" hidden></div>
       <div class="scene js-scene">
         <div class="sl sc-sky js-sc-sky"></div>
         <div class="sl sc-stars js-sc-stars"></div>
@@ -363,7 +355,6 @@
       todos: ['Pay internet bill'], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: 'Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
       message: 'Proud of you, champ!', pack: 'Hall ticket', photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: 'Hack Squat + Chest/Back' },
-      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
     };
   }
 
@@ -757,73 +748,74 @@
     rainSize(W, HOR); rainSet(lvl); flashArm(lvl === 3);
     renderCity(W, HOR, T, dark);
   }
-  // ---------- Skyline: a stylised West-Hyderabad silhouette (glass towers, a cable-stayed bridge, cranes) ----------
-  const city = { key: '', svg: '' };
-  function buildCity(W, H) {
-    let q = 7; const r = () => (q = (q * 16807) % 2147483647) / 2147483647, B = H;
-    const rect = (x, y, w, h) => `M${x.toFixed(1)} ${y.toFixed(1)}h${w.toFixed(1)}v${h.toFixed(1)}h${(-w).toFixed(1)}z`;
-    let far = '', near = '', win = '', red = '';
-    // far layer: lower, hazier blocks
-    for (let x = -30; x < W + 30;) { const w = 40 + r() * 70, h = 40 + r() * 100; far += rect(x, B - h, w, h + 2); if (r() < .3) far += rect(x + w * .3, B - h - 12 - r() * 14, w * .4, 14 + 4); x += w - 4 + r() * 10; }
-    // cable-stayed bridge (far layer): one tall pylon, a fan of cables, a long deck
-    const px = W * .5, deck = B - 30, top = B - 178;
-    far += rect(px - 4 - W * .17, deck, W * .34 + 8, 5) + `M${px - 20} ${deck}L${px - 3.5} ${top}L${px + 3.5} ${top}L${px + 20} ${deck}L${px + 12} ${deck}L${px} ${top + 40}L${px - 12} ${deck}Z`;
-    let cab = ''; for (let i = 1; i <= 9; i++) { const d = i * (W * .15 / 9); cab += `M${px} ${top + 6 + i * 2}L${px - d} ${deck}M${px} ${top + 6 + i * 2}L${px + d} ${deck}`; }
-    // near layer: tall glass-tower cluster on the left/centre (the part the photo card does not cover), lower blocks elsewhere
+  // ---------- Skyline: a stylised West-Hyderabad city in depth: haze, tall glass towers, a lit cable-stayed bridge over a lake, dark low-rise in front ----------
+  const city = { key: '' };
+  function buildCity(W, B) {
+    let q = 7; const r = () => (q = (q * 16807) % 2147483647) / 2147483647;
+    const n = v => v.toFixed(1), rect = (x, y, w, h) => `M${n(x)} ${n(y)}h${n(w)}v${n(h)}h${n(-w)}z`;
+    const P = { far: '', mid: '', rim: '', glass: '', lit: '', near: '', nrim: '', red: '', deck: '', cab: '', lamp: '', water: '', shim: '' };
+    const deckL = W * .265, deckR = W * .585, px = W * .43, deckY = B - 38, span = deckR - deckL, top = B - 330;   // keeps clear of the weather readout at the left and the photo card at the right
+    const panes = (x, y, w, h) => { if (w < 22) return; for (let ry = y + 10; ry < B - 10; ry += 11) for (let cx = x + 4; cx < x + w - 7; cx += 8) { const u = r(); if (!(x > 340 || ry < B - 185)) continue; if (u < .42) P.glass += rect(cx, ry, 4, 6); else if (u > .78) P.lit += rect(cx, ry, 4, 6); } };
+    // 1. haze layer: far, low-contrast blocks
+    for (let x = -30; x < W + 30;) { const w = 46 + r() * 70, h = 60 + r() * 110; P.far += rect(x, B - h, w, h + 2); if (r() < .3) P.far += rect(x + w * .3, B - h - 14, w * .4, 15); x += w - 6 + r() * 10; }
+    // 2. tall glass towers (the Financial-District cluster is on the left and centre, where the photo card does not cover it)
     for (let x = -10; x < W + 20;) {
-      const f = x / W, w = 24 + r() * 40;
-      const h = f > .06 && f < .42 ? 160 + r() * 150 : f >= .42 && f < .62 ? 95 + r() * 85 : 42 + r() * 80, y = B - h, c = r();
-      near += rect(x, y, w, h + 2);
-      if (c < .22) near += rect(x + w * .2, y - 14, w * .6, 15);                                           // stepped crown
-      else if (c < .36) near += `M${x} ${y}L${x + w} ${y - 16}L${x + w} ${y}Z`;                              // slanted roof
-      else if (c < .5) near += `M${x + w * .5 - 2} ${y}L${x + w * .5} ${y - 22 - r() * 26}L${x + w * .5 + 2} ${y}Z`; // spire
-      else if (c < .6 && h > 140) near += rect(x + w * .5, y - 46, 2, 47) + rect(x + w * .5 - 26, y - 46, 40, 2) + rect(x + w * .5 - 22, y - 44, 1.5, 12); // construction crane
-      if (h > 200) red += `<circle cx="${(x + w * .5).toFixed(1)}" cy="${(y - 3).toFixed(1)}" r="1.8"/>`;
-      if (x > 340 && w > 24 && h > 50) for (let row = 0, ry = y + 8; ry < B - 8 && row < 20; row++, ry += 9) for (let cx = x + 4; cx < x + w - 6; cx += 7) if (r() < .34) win += rect(cx, ry, 3, 4);
-      x += w + (r() < .2 ? 3 + r() * 6 : -1);
+      const f = x / W, w = 26 + r() * 28, h = f > .04 && f < .46 ? 170 + r() * 150 : f >= .46 && f < .66 ? 110 + r() * 90 : 60 + r() * 80, y = B - h, t = r();
+      if (t < .25) P.mid += rect(x, y, w, h + 2);
+      else if (t < .45) P.mid += `M${n(x)} ${n(B + 2)}L${n(x)} ${n(y + 16)}L${n(x + w * .14)} ${n(y)}L${n(x + w * .86)} ${n(y)}L${n(x + w)} ${n(y + 16)}L${n(x + w)} ${n(B + 2)}Z`;   // tapered crown
+      else if (t < .62) P.mid += rect(x, y + h * .35, w, h * .65 + 2) + rect(x + w * .15, y, w * .7, h * .35 + 1) + rect(x + w * .4, y - 12, w * .2, 13);                          // setbacks
+      else if (t < .76) P.mid += `M${n(x)} ${n(B + 2)}L${n(x)} ${n(y + 18)}L${n(x + w)} ${n(y)}L${n(x + w)} ${n(B + 2)}Z`;                                                           // sloped roof
+      else if (t < .88) P.mid += `M${n(x)} ${n(B + 2)}L${n(x)} ${n(y + w * .5)}A${n(w / 2)} ${n(w / 2)} 0 0 1 ${n(x + w)} ${n(y + w * .5)}L${n(x + w)} ${n(B + 2)}Z`;               // rounded top
+      else { const g = w * .42; P.mid += rect(x, y, g, h + 2) + rect(x + w - g, y + 10, g, h - 8) + rect(x + g - 1, y + h * .3, w - 2 * g + 2, 6); }                              // twin towers + sky-bridge
+      if (r() < .3) P.mid += `M${n(x + w * .5 - 1.6)} ${n(y)}L${n(x + w * .5)} ${n(y - 26 - r() * 30)}L${n(x + w * .5 + 1.6)} ${n(y)}Z`;
+      else if (h > 230 && r() < .35) P.mid += rect(x + w * .5, y - 48, 2, 49) + rect(x + w * .5 - 28, y - 48, 42, 2) + rect(x + w * .5 - 24, y - 46, 1.5, 14);                    // construction crane
+      P.rim += rect(x, y, 1.8, h) + rect(x, y, w, 1.3);
+      if (h > 210) P.red += `<circle cx="${n(x + w * .5)}" cy="${n(y - 3)}" r="1.9"/>`;
+      panes(x, y, w, h);
+      x += w + (r() < .25 ? 4 + r() * 8 : -2);
     }
-    return `<path class="cfar" d="${far}"/><path class="ccab" d="${cab}" fill="none" stroke-width="1.1"/><path class="cnear" d="${near}"/><path class="cwin" d="${win}" fill="#FFD27A"/><g class="cred" fill="#FF4B3A">${red}</g>`;
+    // 3. the lake and the cable-stayed bridge: tall A-frame pylon, a fan of cables, a long deck with lamp posts
+    P.water += rect(deckL - 14, deckY + 8, span + 28, B - deckY - 6);
+    for (let i = 0; i < 28; i++) P.shim += rect(deckL + r() * span, deckY + 12 + r() * (B - deckY - 18), 10 + r() * 26, 1.2);
+    P.deck += rect(deckL, deckY, span, 6) + rect(deckL, deckY + 6, span, 2) + rect(px - 22, deckY - 112, 44, 5)
+      + `M${n(px - 32)} ${n(deckY)}L${n(px - 5.5)} ${n(top)}L${n(px + 5.5)} ${n(top)}L${n(px + 32)} ${n(deckY)}L${n(px + 21)} ${n(deckY)}L${n(px)} ${n(top + 52)}L${n(px - 21)} ${n(deckY)}Z`;
+    for (let i = 0; i < 13; i++) { const d = 30 + i * (span * .43 / 13), ay = top + 12 + i * 7.5; P.cab += `M${n(px)} ${n(ay)}L${n(px - d)} ${n(deckY)}M${n(px)} ${n(ay)}L${n(px + d)} ${n(deckY)}`; }
+    for (let x = deckL + 14; x < deckR - 8; x += 30) { P.deck += rect(x, deckY - 10, 1.6, 10); P.lamp += `<circle cx="${n(x + .8)}" cy="${n(deckY - 12)}" r="2.1"/>`; }
+    // 4. dark low-rise in front (not across the lake)
+    for (let x = -10; x < W + 20;) {
+      const w = 30 + r() * 44, h = 32 + r() * 64;
+      if (x + w > deckL - 12 && x < deckR + 12) { x = deckR + 12; continue; }
+      P.near += rect(x, B - h, w, h + 2); if (r() < .4) P.near += rect(x + w * .25, B - h - 10, w * .3, 11);
+      P.nrim += rect(x, B - h, w, 1.3); if (x > 340) panes(x, B - h, w, h);
+      x += w + (r() < .3 ? 3 + r() * 8 : 0);
+    }
+    return `<defs><linearGradient id="gF" x1="0" y1="0" x2="0" y2="1"><stop id="sFt" offset="0"/><stop id="sFb" offset="1"/></linearGradient>`
+      + `<linearGradient id="gM" x1="0" y1="0" x2="0" y2="1"><stop id="sMt" offset="0"/><stop id="sMb" offset="1"/></linearGradient>`
+      + `<linearGradient id="gN" x1="0" y1="0" x2="0" y2="1"><stop id="sNt" offset="0"/><stop id="sNb" offset="1"/></linearGradient>`
+      + `<linearGradient id="gW" x1="0" y1="0" x2="0" y2="1"><stop id="sWt" offset="0"/><stop id="sWb" offset="1"/></linearGradient></defs>`
+      + `<path fill="url(#gF)" d="${P.far}"/><path fill="url(#gM)" d="${P.mid}"/><path class="cgl" d="${P.glass}"/><path class="clit" fill="#FFD27A" d="${P.lit}"/><path class="crim" d="${P.rim}"/>`
+      + `<path fill="url(#gW)" d="${P.water}"/><path class="cshim" d="${P.shim}"/><path class="cdeck" d="${P.deck}"/><path class="ccab" fill="none" stroke-width="1.9" d="${P.cab}"/>`
+      + `<path class="ccabg" fill="none" stroke="#FFE3A8" stroke-width="1" d="${P.cab}"/><g class="clamp" fill="#FFE3A8">${P.lamp}</g><path fill="url(#gN)" d="${P.near}"/><path class="cnrim" d="${P.nrim}"/><g class="cred" fill="#FF4B3A">${P.red}</g>`;
   }
   function renderCity(W, H, T, dark) {
     const el = $('.js-sc-city'); if (!el) return;
     const key = Math.round(W) + 'x' + Math.round(H);
     if (city.key !== key) { city.key = key; el.setAttribute('viewBox', `0 0 ${Math.round(W)} ${Math.round(H)}`); el.setAttribute('preserveAspectRatio', 'none'); el.innerHTML = buildCity(Math.round(W), Math.round(H)); }
-    const farC = mix(T[2], '#0A1020', .5), nearC = mix(T[2], '#04060C', .88);
-    el.querySelector('.cfar').setAttribute('fill', farC); el.querySelector('.ccab').setAttribute('stroke', farC); el.querySelector('.cnear').setAttribute('fill', nearC);
-    el.querySelector('.cwin').setAttribute('opacity', Math.min(1, dark * 1.4).toFixed(2)); el.querySelector('.cred').setAttribute('opacity', Math.min(1, .25 + dark).toFixed(2));
+    const hz = T[2], st = (id, c) => el.querySelector('#' + id).setAttribute('stop-color', c), at = (cls, a, v) => el.querySelector('.' + cls).setAttribute(a, v);
+    st('sFt', mix(hz, T[1], .2)); st('sFb', mix(hz, '#0B1226', .34));
+    st('sMt', mix(hz, '#0B1226', .46)); st('sMb', mix(hz, '#050813', .78));
+    st('sNt', mix(hz, '#04060C', .74)); st('sNb', mix(hz, '#03050A', .93));
+    st('sWt', mix(hz, '#1B2B4A', .4)); st('sWb', mix(hz, '#060A14', .72));
+    const rim = dark > .5 ? '#A9BDF0' : mix(hz, '#FFFFFF', .5), steel = mix(mix(hz, '#EAF0F8', .52), '#2E3A60', Math.min(1, dark * .9));
+    at('crim', 'fill', rim); at('crim', 'opacity', (.62 - .24 * dark).toFixed(2)); at('cnrim', 'fill', rim); at('cnrim', 'opacity', (.4 - .15 * dark).toFixed(2)); at('cshim', 'fill', rim); at('cshim', 'opacity', (.3).toFixed(2));
+    at('cgl', 'fill', mix(hz, '#FFFFFF', .4)); at('cgl', 'opacity', ((1 - Math.min(1, dark * 1.6)) * .42).toFixed(2));
+    at('clit', 'opacity', Math.min(1, dark * 1.4).toFixed(2)); at('cred', 'opacity', Math.min(1, .25 + dark).toFixed(2));
+    at('cdeck', 'fill', steel); at('ccab', 'stroke', steel); at('ccabg', 'opacity', (Math.min(1, dark * 1.2) * .85).toFixed(2)); at('clamp', 'opacity', Math.min(1, dark * 1.3).toFixed(2));
   }
   function trayToggle() {
     const tr = $('.js-tray'); if (!tr) return;
     const any = ($('.js-chips').innerHTML || $('.js-rings').innerHTML);
     tr.style.display = any ? '' : 'none';
-  }
-
-  // ---------- Family presence: iPhone Shortcuts (Arrive / Leave) report to Apps Script ----------
-  const ME_NAME = 'Rakesh';                                   // shown as 'Me', matching the calendar chips
-  const FAMILY_ORDER = ['rakesh', 'sujatha', 'rhea', 'lakshita'];
-  const PLACE_MAP = [
-    [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
-    [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
-    [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
-  ];
-  const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
-  function renderFamily(nowMs) {
-    const el = $('.js-fam'), list = (data?.presence || []).filter(x => x && x.who && x.place);
-    if (!list.length) { el.hidden = true; set('.js-fam', ''); return; }
-    const rank = w => { const i = FAMILY_ORDER.indexOf(String(w).toLowerCase()); return i < 0 ? 99 : i; };
-    list.sort((a, b) => rank(a.who) - rank(b.who) || String(a.who).localeCompare(b.who));
-    set('.js-fam', list.map(x => {
-      const me = String(x.who).toLowerCase() === ME_NAME.toLowerCase();
-      const p = personStyle(me ? 'Me' : x.who) || { label: '?', color: '#E8E2D6' };
-      const moving = x.event === 'leave', atHome = !moving && /\bhome\b/i.test(x.place);
-      const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99;
-      const stale = moving && ageH > 12;                      // left somewhere long ago, never arrived: unknown
-      const badge = stale ? '·' : moving ? '🚗' : placeEmoji(x.place);
-      const since = !atHome && !stale && x.at ? `<span class="since tn">${fmtT(new Date(x.at))}</span>` : '';
-      const label = `${x.who}: ${moving ? 'left' : 'at'} ${x.place}`;
-      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};color:${p.color}">${esc(p.label)}<span class="bd">${badge}</span></div>${since}</div>`;
-    }).join(''));
-    el.hidden = false;
   }
 
   function render() {
@@ -833,7 +825,6 @@
     renderSky();
     if (data) {
       lastHero = night ? renderNightHero(nowD) : renderHero(nowMs);
-      renderFamily(nowMs);
       renderRibbon(nowD);
       renderScene(nowD, night);
       if (night) { set('.js-chips', ''); set('.js-rings', ''); } else renderAgenda(nowD);
