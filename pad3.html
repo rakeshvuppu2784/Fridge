@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#14110F">
+<title>Fridge (Pad 3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root { --cream: #F3ECDF; --dim: #C3CBD6; --gold: #F2B84F; --ink: #17130F; --surf: rgba(255,255,255,.07); --serif: Fraunces, Georgia, serif; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #14110F; overflow: hidden; font-family: Inter, system-ui, -apple-system, sans-serif; color: var(--cream);
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; touch-action: manipulation; overscroll-behavior: none; }
+  .tn { font-variant-numeric: tabular-nums; }
+  svg.ic { fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  #stage { position: absolute; top: 0; left: 0; width: 1204px; height: 860px; transform-origin: 0 0; background: #14110F; overflow: hidden; }
+  #sky { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #1B2A3D, #25394F 50%, #33506A); }
+  #sky::after { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(10,9,8,.14), rgba(10,9,8,.5)); }
+  .grid { position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 48px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 40px; }
+  .left { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; }
+
+  /* A. header */
+  .hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+  .clock { font-family: var(--serif); font-variation-settings: 'opsz' 48; font-weight: 300; font-size: 112px; line-height: 1; letter-spacing: -3px; white-space: nowrap; }
+  .date { font-size: 24px; color: var(--dim); margin-top: 6px; min-height: 30px; white-space: nowrap; }
+  .hw { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; padding-top: 10px; flex-shrink: 0; }
+  .wt { display: flex; align-items: center; gap: 12px; }
+  .we { font-size: 48px; line-height: 1; }
+  .wd { font-family: var(--serif); font-variation-settings: 'opsz' 48; font-weight: 300; font-size: 56px; line-height: 1; letter-spacing: -1px; }
+  .bds { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+  .bdg { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border-radius: 17px; font-size: 20px; font-weight: 500; color: var(--cream); }
+  .aq { display: inline-flex; align-items: center; gap: 8px; font-size: 20px; color: var(--dim); }
+  .aq i { display: block; width: 10px; height: 10px; border-radius: 5px; }
+
+  /* B. hero */
+  .hero { display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 20px; align-items: start; min-height: 64px; }
+  .tile { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; }
+  .te { font-size: 36px; line-height: 1; }
+  .td { display: block; width: 22px; height: 22px; border-radius: 11px; }
+  .ht { min-width: 0; }
+  .htitle { font-family: var(--serif); font-variation-settings: 'opsz' 48; font-weight: 400; font-size: 64px; line-height: 1.15; letter-spacing: -1.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hmeta { display: flex; align-items: center; gap: 16px; font-size: 26px; color: var(--dim); margin-top: 6px; min-height: 36px; white-space: nowrap; }
+  .pill { display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 18px; background: var(--gold); color: var(--ink); font-weight: 500; font-size: 26px; }
+  .dots { display: inline-flex; align-items: center; }
+  .dots i { display: block; border-radius: 50%; box-shadow: 0 0 0 2px rgba(20,17,15,.55); }
+  .dots i + i { margin-left: -8px; }
+
+  /* C. day ribbon */
+  .ribbon { position: relative; height: 56px; border-radius: 28px; overflow: hidden; background: rgba(8,10,24,.5); }
+  .rday { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(240,128,92,.66), rgba(250,208,120,.6) 50%, rgba(232,112,100,.66));
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+  .blk { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0 3px; border-radius: 22px; overflow: hidden; white-space: nowrap; color: var(--ink); font-size: 20px; font-weight: 500; }
+  .blk .be { font-size: 22px; line-height: 1; }
+  .rdot { position: absolute; bottom: 1px; width: 4px; height: 4px; border-radius: 2px; background: rgba(243,236,223,.42); transform: translateX(-50%); }
+  .sun { position: absolute; top: 28px; width: 0; height: 0; z-index: 3; }
+  .sun .gl { position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 36px; animation: glow 4s ease-in-out infinite; }
+  .sun svg { position: absolute; left: -12px; top: -12px; }
+
+  /* D. agenda chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; min-height: 48px; }
+  .chip { display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 20px 0 16px; border-radius: 24px; background: var(--surf); font-size: 24px; white-space: nowrap; max-width: 100%; min-width: 0; }
+  .chip .ct { overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+  .chip .tag { font-size: 20px; font-weight: 500; color: var(--dim); }
+  .chip.more { padding: 0 18px; color: var(--dim); }
+
+  /* E. countdown rings */
+  .rings { display: flex; gap: 8px; align-items: flex-start; }
+  .ring { flex: 1 1 0; max-width: 152px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .rg { position: relative; width: 72px; height: 72px; }
+  .rg svg { display: block; }
+  .rn { position: absolute; left: 0; top: 0; width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1; }
+  .rn.sm { font-family: Inter, system-ui, sans-serif; font-size: 20px; font-weight: 500; }
+  .rp { position: absolute; width: 16px; height: 16px; border-radius: 8px; }
+  .rl { font-size: 20px; color: var(--dim); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+  /* night: clock, moon ribbon, tomorrow's first event, temperature */
+  .night .tile { width: 48px; height: 48px; border-radius: 16px; }
+  .night .te { font-size: 28px; }
+  .night .td { width: 18px; height: 18px; border-radius: 9px; }
+  .night .hero { grid-template-columns: 48px minmax(0, 1fr); min-height: 48px; }
+  .night .chips, .night .rings { display: none; }
+
+  /* F. photo: clean, no data overlay */
+  .photo { position: relative; border-radius: 28px; overflow: hidden; background: #2A241F; }
+  .ph { position: absolute; left: 0; top: 0; right: 0; bottom: 0; opacity: 0; transition: opacity 1.4s ease; }
+  .ph.show { opacity: 1; }
+  .ph-bg { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-size: cover; background-position: center; filter: brightness(.55); }
+  .ph-fg { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
+  .ph.landscape .ph-fg { background-size: contain; background-position: center 30%; }
+  .ph-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; background: linear-gradient(to top, rgba(10,8,6,.66), rgba(10,8,6,0)); pointer-events: none; }
+  .ph-cap { position: absolute; left: 26px; bottom: 20px; font-size: 20px; color: var(--cream); text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+  .ph-dots { position: absolute; right: 26px; top: 30px; display: flex; gap: 5px; }
+  .ph-dots span { width: 5px; height: 5px; border-radius: 3px; background: rgba(244,238,228,.45); }
+  .ph-dots span.on { width: 16px; background: var(--cream); }
+  .ph-empty { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #B5ADA1; text-align: center; padding: 20px; }
+
+  #inter { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 6; background: #0C0A09; opacity: 0; visibility: hidden; transition: opacity .9s ease, visibility 0s .9s; }
+  #inter.on { opacity: 1; visibility: visible; transition: opacity .9s ease; }
+  #inter .imgs, #inter .imgs > div { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+  #inter .ibg { background-size: cover; background-position: center; filter: brightness(.5); }
+  #inter .ifg { background-position: center; background-repeat: no-repeat; }
+  #inter .ifg.land { background-size: cover; animation: pan 34s ease-out forwards; }
+  #inter .ifg.port { background-size: contain; }
+  #inter .shade-t { position: absolute; left: 0; top: 0; right: 0; height: 200px; background: linear-gradient(to bottom, rgba(10,8,7,.7), rgba(10,8,7,0)); }
+  #inter .shade-b { position: absolute; left: 0; bottom: 0; right: 0; height: 360px; background: linear-gradient(to top, rgba(10,8,7,.88), rgba(10,8,7,0)); }
+  #inter .ibar { position: absolute; left: 0; bottom: 0; height: 6px; width: 100%; background: rgba(255,255,255,.14); }
+  #inter .ibar i { display: block; height: 6px; background: var(--gold); animation: bar 30s linear forwards; }
+  @keyframes pan { from { transform: scale(1.04) translate(0, 0); } to { transform: scale(1.14) translate(-2.5%, -2%); } }
+  @keyframes bar { from { width: 0; } to { width: 100%; } }
+  @keyframes fall { from { transform: translateY(-40px) rotate(0deg); } to { transform: translateY(940px) rotate(600deg); } }
+  @keyframes glow { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.1); } }
+  #confetti { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+  #confetti i { position: absolute; top: 0; opacity: .92; animation: fall linear infinite; }
+
+  #dim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 2s; z-index: 8; }
+  .status { position: absolute; right: 18px; bottom: 8px; font-size: 16px; color: var(--dim); z-index: 3; }
+  .banner { position: absolute; left: 0; right: 0; top: 0; padding: 6px 48px; font-size: 15px; background: #3A2A10; color: #F2C27A; z-index: 9; }
+  @media (prefers-reduced-motion: reduce) { .ph { transition: none; } #inter .ifg.land { animation: none; } * { animation-duration: 0s !important; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="sky"></div>
+  <div class="grid">
+    <div class="left">
+      <div class="hd">
+        <div><div class="clock tn js-clock"></div><div class="date js-date"></div></div>
+        <div class="hw js-wx"></div>
+      </div>
+      <div class="hero js-hero"></div>
+      <div class="ribbon js-ribbon"></div>
+      <div class="chips js-chips"></div>
+      <div class="rings js-rings"></div>
+    </div>
+    <div class="photo js-photo">
+      <div class="ph js-ph-a"><div class="ph-bg"></div><div class="ph-fg"></div></div>
+      <div class="ph js-ph-b"><div class="ph-bg"></div><div class="ph-fg"></div></div>
+      <div class="ph-empty js-ph-empty">Add photos to the Drive folder to fill this frame</div>
+      <div class="ph-shade"></div>
+      <div class="ph-cap js-ph-cap"></div>
+      <div class="ph-dots js-ph-dots"></div>
+    </div>
+  </div>
+
+  <div id="inter">
+    <div class="imgs js-inter-imgs"></div>
+    <div class="shade-t"></div><div class="shade-b"></div>
+    <div class="tn js-i-clock" style="position:absolute;left:48px;top:36px;font-family:var(--serif);font-size:64px;line-height:1"></div>
+    <div class="js-i-wx" style="position:absolute;right:48px;top:40px;display:flex;align-items:center;gap:12px"></div>
+    <div style="position:absolute;left:48px;bottom:64px"><div class="js-i-sub" style="font-size:28px;color:#E6DFD2"></div><div class="js-i-title" style="font-family:var(--serif);font-size:72px;line-height:80px;letter-spacing:-1px"></div></div>
+    <div class="js-i-next" style="position:absolute;right:48px;bottom:72px;display:flex;align-items:center;gap:14px;font-size:28px;color:#EDE6DA"></div>
+    <div class="ibar js-i-bar"></div>
+  </div>
+  <div id="confetti"></div>
+  <div id="dim"></div>
+  <div class="status js-status"></div>
+  <div class="banner js-banner" hidden>Showing sample data. Open with ?api=YOUR_EXEC_URL&amp;key=YOUR_KEY to connect.</div>
+</div>
+
+<script>
+(() => {
+  // ---------- Settings ----------
+  const LAT_DEFAULT = 17.465, LON_DEFAULT = 78.361;     // Kondapur, Hyderabad
+  const NIGHT_FROM = 22, NIGHT_TO = 6;                   // dim / pause photo extras between these hours
+  const DAY_LEVEL = -1, NIGHT_LEVEL = 25, NIGHT_CAP = 60; // Fully brightness: 0-255, -1 = device default
+  const F = (typeof window.fully !== 'undefined') ? window.fully : null;
+  const RAIN_NUDGE = 60, HOT_NUDGE = 38, AQI_NUDGE = 200, UV_NUDGE = 8, SOON_MIN = 60, CD_ALERT_DAYS = 3;
+  const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
+  const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
+  const GOLD = '#F2B84F';
+  const BUILD = 'pad3-20261108';   // bump on every release: tablets reload themselves when this changes
+
+  // ---------- Config from URL, remembered on device ----------
+  const qs = new URLSearchParams(location.search);
+  let cfg = {};
+  try { cfg = JSON.parse(localStorage.getItem('dash-config') || '{}'); } catch (e) {}
+  ['api', 'key', 'lat', 'lon', 'light'].forEach(k => { if (qs.get(k)) cfg[k] = qs.get(k); });
+  if (qs.get('reset')) cfg = {};
+  try { localStorage.setItem('dash-config', JSON.stringify(cfg)); } catch (e) {}
+  const LAT = parseFloat(cfg.lat) || LAT_DEFAULT, LON = parseFloat(cfg.lon) || LON_DEFAULT;
+  const DEMO = qs.get('demo') === '1' || !cfg.api || !cfg.key;
+  const LIGHT_AUTO = cfg.light === '1';
+  // ?at=19:13 previews that time of day (sky, timeline, arc, hero) without waiting for it
+  const AT = /^(\d{1,2}):(\d{2})$/.exec(qs.get('at') || '');
+  const clockNow = () => { const d = new Date(); if (AT) d.setHours(+AT[1], +AT[2], 0, 0); return d; };
+
+  // ---------- Helpers ----------
+  const $ = s => document.querySelector(s);
+  const set = (s, html) => { const el = $(s); if (el && el.innerHTML !== html) el.innerHTML = html; };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const hm = d => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const ampm = d => `${hm(d)} ${d.getHours() < 12 ? 'am' : 'pm'}`;
+  const hoursOf = d => d.getHours() + d.getMinutes() / 60;
+  const fmtH = h => { const hh = Math.floor(h), mm = Math.round((h - hh) * 60); const d = new Date(2000, 0, 1, mm === 60 ? hh + 1 : hh, mm === 60 ? 0 : mm); return ampm(d); };
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+
+  const PALETTE = ['#9CC4FF', '#A6E0C6', '#D7B4F0', '#F5A08F', '#E8D36B', '#8FD0E0'];
+  function personStyle(who, fallback) {
+    const w = String(who || '').trim();
+    if (!w) return null;
+    if (/^me$/i.test(w)) return { label: 'Me', color: '#F2B47A', name: 'Me' };
+    if (/^(all|family)$/i.test(w)) return { label: 'All', color: '#E8E2D6', name: 'Everyone' };
+    if (/^kids$/i.test(w)) return { label: 'K', color: fallback || '#9CC4FF', name: 'Kids' };
+    let h = 0; for (const ch of w.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return { label: w[0].toUpperCase(), color: PALETTE[h % PALETTE.length], name: w };
+  }
+  const personColor = (who, fb) => (personStyle(who, fb) || {}).color || fb || '#E8E2D6';
+  function splitWho(label) {
+    const m = /^\s*([^·]{1,14}?)\s*·\s+(.+)$/.exec(String(label || ''));
+    return m ? { who: m[1].trim(), title: m[2].trim() } : { who: '', title: String(label || '') };
+  }
+
+  const ICONS = {
+    drop: '<path d="M12 3.5c3.2 4 5.5 6.9 5.5 10a5.5 5.5 0 0 1-11 0c0-3.1 2.3-6 5.5-10z"/>',
+    bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 21h4"/>',
+    leaf: '<path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14z"/><path d="M5 19c3-4 6-7 10-9"/>',
+    dumbbell: '<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
+    uv: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7"/>',
+  };
+  const svgIc = (name, size, color) => `<svg class="ic" aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" stroke="${color}" style="flex-shrink:0">${ICONS[name]}</svg>`;
+
+  // emoji for event types: first match wins, no match = person-coloured dot
+  const EMOJI_MAP = [
+    [/\b(blood|doctor|dentist|clinic|hospital|vaccin)/i, '🩺'],
+    [/\b(birthday|bday)/i, '🎂'],
+    [/\b(diwali|deepavali)/i, '🪔'],
+    [/\bholi\b/i, '🎨'],
+    [/\bchristmas/i, '🎄'],
+    [/\b(sankranti|pongal)/i, '🪁'],
+    [/\b(exam(?!ple)|test|nse|olympiad|quiz|jee)/i, '📝'],
+    [/\b(tuition|class|lesson)/i, '📚'],
+    [/\b(school|pta)|parent[- ]teacher|\bbus\b/i, '🎒'],
+    [/\b(piano|music|dance)/i, '🎵'],
+    [/\b(dinner|lunch|breakfast|brunch)/i, '🍽️'],
+    [/\b(movie|film)/i, '🎬'],
+    [/\b(flight|trip|travel|airport)/i, '✈️'],
+    [/\b(sabbatical|vacation|leave|holiday)/i, '🌴'],
+    [/\b(meeting|review|call)/i, '💼'],
+    [/\b(pay(ment)?|bills?|billing|fees?)\b/i, '💳'],
+    [/\bpack/i, '🧳'],
+    [/\b(gym|workout)/i, '🏋️'],
+    [/\b(buy|shop)/i, '🛒'],
+  ];
+  const emojiFor = t => { const s = String(t || ''); for (const [re, e] of EMOJI_MAP) if (re.test(s)) return e; return ''; };
+  const wxEmoji = (code, day = 1) => code == null ? '⛅' : code <= 1 ? (day ? '☀️' : '🌙') : code <= 3 ? '⛅' : (code === 45 || code === 48) ? '🌫️' :
+    ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) ? '🌧️' : code >= 95 ? '⛈️' : '⛅';
+  const fmtT = d => { const h = d.getHours() % 12 || 12, m = d.getMinutes(); return `${h}${m ? ':' + String(m).padStart(2, '0') : ''} ${d.getHours() < 12 ? 'am' : 'pm'}`; };
+  const cut = (s, n = 4) => String(s).trim().split(/\s+/).slice(0, n).join(' ');
+  const dayAbbr = d => DAYS[d.getDay()].slice(0, 3);
+  const ALL3 = ['#F2B47A', '#9CC4FF', '#A6E0C6'];
+  function dotsHtml(who, fb, size = 22) {
+    const p = personStyle(who, fb); if (!p) return '';
+    const cols = p.name === 'Everyone' ? ALL3 : [p.color];
+    return `<span class="dots">${cols.map(c => `<i style="width:${size}px;height:${size}px;background:${c}"></i>`).join('')}</span>`;
+  }
+
+  // Indian AQI (CPCB) from 24-h average PM2.5 / PM10
+  const BP = {
+    pm25: [[0, 30, 0, 50], [31, 60, 51, 100], [61, 90, 101, 200], [91, 120, 201, 300], [121, 250, 301, 400], [251, 500, 401, 500]],
+    pm10: [[0, 50, 0, 50], [51, 100, 51, 100], [101, 250, 101, 200], [251, 350, 201, 300], [351, 430, 301, 400], [431, 600, 401, 500]],
+  };
+  function subIndex(c, table) {
+    if (c == null || isNaN(c)) return null;
+    const x = Math.round(c);
+    for (const [lo, hi, ilo, ihi] of table) if (x <= hi) return Math.round(ilo + (ihi - ilo) * (Math.max(x, lo) - lo) / (hi - lo));
+    return 500;
+  }
+  const aqiColor = a => a <= 50 ? '#8FD3B6' : a <= 100 ? '#C5DB7A' : a <= 200 ? '#E8D36B' : a <= 300 ? '#F2A65A' : a <= 400 ? '#F28C7A' : '#E86A6A';
+  const uvCat = u => u < 3 ? ['low', '#8FD3B6'] : u < 6 ? ['moderate', '#E8D36B'] : u < 8 ? ['high', '#F2A65A'] : u < 11 ? ['very high', '#F28C7A'] : ['extreme', '#D7B4F0'];
+
+  // ---------- State ----------
+  let data = null, wx = null, lastOk = 0;
+  try { wx = JSON.parse(localStorage.getItem('dash-wx') || 'null'); } catch (e) {}
+  let photos = [], photoKey = '', photoIdx = 0, photoLayer = 0;
+  let interActive = false, lastInter = Date.now(), interTimer = null, confettiTimer = null, lastHero = null;
+
+  // ---------- Sample data ----------
+  function sample() {
+    const base = new Date(); base.setHours(0, 0, 0, 0);
+    const ev = (title, h, m, mins, who, color, off = 0) => {
+      const s = base.getTime() + off * 864e5 + (h * 60 + m) * 60e3;
+      return { title, allDay: false, start: s, end: s + mins * 60e3, time: hm(new Date(s)), who, color };
+    };
+    const allDay = (title, who, color, off = 0) => ({ title, allDay: true, start: base.getTime() + off * 864e5, end: base.getTime() + (off + 1) * 864e5, time: 'All day', who, color });
+    const today = [ev('School bus', 8, 0, 30, 'Rhea', '#7FB3FF'), ev('Client review', 10, 30, 60, 'Me', '#F2A65A'), ev('Tuition', 12, 0, 60, 'Lucky', '#7FB3FF'), ev('Piano', 16, 30, 60, 'Rhea', '#7FB3FF'), ev('Diwali dinner', 19, 30, 90, 'All', '#E8E2D6')];
+    if (qs.get('bday')) today.unshift({ title: "Riya's birthday · turns 12", allDay: true, start: base.getTime(), end: base.getTime() + 864e5, time: 'All day', who: 'All', color: '#E8E2D6' });
+    return {
+      today,
+      tomorrow: [allDay('Diwali', 'All', '#E8E2D6', 1), ev('Weekly test', 7, 0, 60, 'Rhea', '#7FB3FF', 1)],
+      tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: ['Mon · Parent-teacher meeting'], open: [] },
+      todos: ['Pay internet bill'], shopping: ['Curd', 'Bananas'],
+      countdowns: [{ label: 'Diwali', days: 1 }, { label: 'Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
+      message: 'Proud of you, champ!', pack: 'Hall ticket', photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: 'Hack Squat + Chest/Back' },
+    };
+  }
+
+  // ---------- Loading ----------
+  async function loadData() {
+    if (DEMO) { data = sample(); lastOk = Date.now(); render(); return; }
+    try {
+      const r = await fetch(`${cfg.api}?key=${encodeURIComponent(cfg.key)}`, { cache: 'no-store' });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      data = j; lastOk = Date.now();
+      try { localStorage.setItem('dash-data', JSON.stringify({ t: lastOk, j })); } catch (e) {}
+    } catch (e) {
+      if (!data) { try { const c = JSON.parse(localStorage.getItem('dash-data')); if (c) { data = c.j; lastOk = c.t; } } catch (e2) {} }
+      console.warn('Data load failed', e);
+    }
+    render();
+  }
+
+  async function loadWeather() {
+    const next = { ...(wx || {}) };
+    try {
+      const f = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+        `&current=temperature_2m,weather_code,is_day,uv_index` +
+        `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,uv_index_max,sunrise,sunset` +
+        `&timezone=Asia%2FKolkata&forecast_days=2`, { cache: 'no-store' }).then(r => r.json());
+      const tOf = s => { const m = /T(\d{2}):(\d{2})/.exec(s || ''); return m ? +m[1] + m[2] / 60 : null; };
+      Object.assign(next, {
+        temp: Math.round(f.current.temperature_2m), code: f.current.weather_code, day: f.current.is_day, uv: f.current.uv_index,
+        hi: Math.round(f.daily.temperature_2m_max[0]), lo: Math.round(f.daily.temperature_2m_min[0]),
+        rain: f.daily.precipitation_probability_max[0] ?? 0, dCode: f.daily.weather_code[0], uvMax: f.daily.uv_index_max[0],
+        tHi: Math.round(f.daily.temperature_2m_max[1]), tLo: Math.round(f.daily.temperature_2m_min[1]),
+        tRain: f.daily.precipitation_probability_max[1] ?? 0, tCode: f.daily.weather_code[1],
+        sr: tOf(f.daily.sunrise[0]), ss: tOf(f.daily.sunset[0]), sr2: tOf(f.daily.sunrise[1]),
+        at: Date.now(),
+      });
+    } catch (e) { console.warn('Weather failed', e); }
+    try {
+      const a = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}` +
+        `&hourly=pm2_5,pm10&past_days=1&forecast_days=1&timezone=Asia%2FKolkata`, { cache: 'no-store' }).then(r => r.json());
+      const now = new Date();
+      const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
+      const idx = a.hourly.time.map((t, i) => [t, i]).filter(([t]) => t <= nowKey).slice(-24).map(([, i]) => i);
+      const avg = arr => { const v = idx.map(i => arr[i]).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+      const vals = [subIndex(avg(a.hourly.pm2_5), BP.pm25), subIndex(avg(a.hourly.pm10), BP.pm10)].filter(x => x != null);
+      next.aqi = vals.length ? Math.max(...vals) : null;
+    } catch (e) { console.warn('AQI failed', e); }
+    if (next.at) { wx = next; try { localStorage.setItem('dash-wx', JSON.stringify(next)); } catch (e) {} }
+    render();
+  }
+
+  // ---------- Sun times and the sky ----------
+  const SR = () => (wx && wx.sr != null) ? wx.sr : 6.13;
+  const SS = () => (wx && wx.ss != null) ? wx.ss : 17.7;
+  const SR2 = () => (wx && wx.sr2 != null) ? wx.sr2 : SR();
+  const SKY = {
+    night:  ['#090B14', '#0F1320', '#161A27'],
+    dawn:   ['#1A1B38', '#3F2E57', '#8D4C4B'],
+    morn:   ['#1D2B40', '#2E4259', '#5C6F7C'],
+    day:    ['#1B2A3D', '#25394F', '#33506A'],
+    golden: ['#1F2740', '#4B3555', '#B05A40'],
+    dusk:   ['#12142F', '#2A1D4B', '#6A3358'],
+    deep:   ['#0E1128', '#241A44', '#7C3A4F'],
+  };
+  const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const mix = (a, b, t) => '#' + rgb(a).map((v, i) => Math.round(v + (rgb(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  function skyAt(h) {
+    const sr = SR(), ss = SS();
+    const A = [[sr - 1, 'night'], [sr - .3, 'dawn'], [sr + 1, 'morn'], [sr + 2.5, 'day'], [ss - 2, 'day'], [ss - .25, 'golden'], [ss + .5, 'dusk'], [ss + 1.5, 'deep'], [ss + 3, 'night']];
+    if (h <= A[0][0] || h >= A[A.length - 1][0]) return SKY.night;
+    for (let i = 0; i < A.length - 1; i++) {
+      if (h >= A[i][0] && h <= A[i + 1][0]) {
+        const t = (h - A[i][0]) / (A[i + 1][0] - A[i][0]), p = SKY[A[i][1]], q = SKY[A[i + 1][1]];
+        return [mix(p[0], q[0], t), mix(p[1], q[1], t), mix(p[2], q[2], t)];
+      }
+    }
+    return SKY.night;
+  }
+  function renderSky() {
+    const [t, m, b] = skyAt(hoursOf(clockNow()));
+    const css = `linear-gradient(180deg,${t} 0%,${m} 50%,${b} 100%)`, el = $('#sky');
+    if (el.dataset.c !== css) { el.style.background = css; el.dataset.c = css; }
+  }
+
+  // ---------- Hero ----------
+  function birthdayToday() {
+    for (const e of (data?.today || [])) {
+      const m = /^(.+?)['’]s birthday(?:.*?turns\s+(\d+))?/i.exec(e.title || '');
+      if (m) return { name: m[1].trim(), age: m[2] ? +m[2] : 0 };
+    }
+    return null;
+  }
+  function heroPick(nowMs) {
+    const today = (data?.today || []).filter(e => !e.allDay);
+    const live = today.find(e => e.start <= nowMs && e.end > nowMs);
+    const nxt = today.find(e => e.start > nowMs);
+    const bd = birthdayToday();
+    if (bd && !live && !(nxt && nxt.start - nowMs <= 30 * 60e3)) return { birthday: bd };
+    if (live) return { e: live, state: 'now' };
+    if (nxt) { const mins = Math.round((nxt.start - nowMs) / 60e3); return { e: nxt, state: mins <= SOON_MIN ? 'soon' : 'next', mins }; }
+    const tmr = (data?.tomorrow || []).find(e => !e.allDay);
+    if (tmr) return { e: tmr, state: 'tomorrow' };
+    const cd = (data?.countdowns || [])[0];
+    if (cd) { const p = splitWho(cd.label); return { state: 'cd', days: cd.days, e: { title: p.title, who: p.who }, meta: cd.days === 0 ? 'Today' : cd.days === 1 ? 'Tomorrow' : `In ${cd.days} days` }; }
+    return { e: { title: data?.message || 'A quiet day' }, state: 'idle' };
+  }
+  function fitTitle() {
+    const el = document.querySelector('.js-hero .htitle'); if (!el) return;
+    const night = $('#stage').classList.contains('night'), max = night ? 44 : 64, min = night ? 32 : 44;
+    let s = max; el.style.fontSize = s + 'px';
+    while (s > min && el.scrollWidth > el.clientWidth + 1) { s -= 2; el.style.fontSize = s + 'px'; }
+  }
+  function heroHtml(o) {
+    const tile = `<div class="tile" style="background:${hexA(o.color, .22)}">${o.emoji ? `<span class="te">${o.emoji}</span>` : `<i class="td" style="background:${o.color}"></i>`}</div>`;
+    return `${tile}<div class="ht"><div class="htitle">${esc(o.title)}</div><div class="hmeta">${o.meta || ''}</div></div>`;
+  }
+  function renderHero(nowMs) {
+    const h = heroPick(nowMs);
+    if (h.birthday) {
+      set('.js-hero', heroHtml({ emoji: '🎂', color: '#E8E2D6', title: `Happy birthday, ${h.birthday.name}`, meta: h.birthday.age ? esc(`Turns ${h.birthday.age}`) : '' }));
+      fitTitle(); return h;
+    }
+    const e = h.e, parts = [];
+    if (h.state === 'now') parts.push('<span class="pill">now</span>');
+    else if (h.state === 'soon') parts.push(`<span class="pill">${h.mins > 0 ? `in ${h.mins} min` : 'now'}</span>`);
+    else if (h.state === 'next') parts.push(`<span class="tn">${fmtT(new Date(e.start))}</span>`);
+    else if (h.state === 'tomorrow') parts.push(`<span class="tn">${dayAbbr(new Date(nowMs + 864e5))} ${fmtT(new Date(e.start))}</span>`);
+    else if (h.state === 'cd') parts.push(h.days <= CD_ALERT_DAYS ? `<span class="pill">${esc(h.meta)}</span>` : esc(h.meta));
+    const d = dotsHtml(e.who, e.color, 22); if (d) parts.push(d);
+    set('.js-hero', heroHtml({ emoji: emojiFor(e.title), color: personColor(e.who, e.color), title: e.title, meta: parts.join('') }));
+    fitTitle(); return h;
+  }
+  // night (22:00-06:00): the first event of the next day, smaller
+  function renderNightHero(nowD) {
+    const nowMs = nowD.getTime(), late = nowD.getHours() >= NIGHT_FROM;
+    const pool = late ? (data?.tomorrow || []).filter(x => x.time !== 'Gym') : (data?.today || []).filter(x => x.allDay || x.end > nowMs);   // 'Gym' rows are covered by the workout chip
+    const e = pool.find(x => !x.allDay) || pool[0];
+    if (!e) { set('.js-hero', ''); return null; }
+    const tag = late ? dayAbbr(new Date(nowMs + 864e5)) : '';
+    const meta = (e.allDay ? esc(tag || 'Today') : `<span class="tn">${tag ? tag + ' ' : ''}${fmtT(new Date(e.start))}</span>`) + (dotsHtml(e.who, e.color, 18) || '');
+    set('.js-hero', heroHtml({ emoji: emojiFor(e.title), color: personColor(e.who, e.color), title: e.title, meta }));
+    fitTitle(); return null;
+  }
+
+  // ---------- Day ribbon: the timeline and the sun arc as one mini-sky ----------
+  function renderRibbon(nowD) {
+    const host = $('.js-ribbon'); if (!host || !data) return;
+    const W = host.clientWidth || 648, nowH = hoursOf(nowD), sr = SR(), ss = SS();
+    const day0 = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()).getTime();
+    const evs = (data.today || []).filter(e => !e.allDay && e.end > e.start)
+      .map(e => ({ s: Math.max(0, (e.start - day0) / 3600e3), e: Math.min(24, (e.end - day0) / 3600e3), raw: e })).sort((a, b) => a.s - b.s);
+    let lo = 5, hi = 23;
+    evs.forEach(x => { lo = Math.min(lo, Math.floor(x.s)); hi = Math.max(hi, Math.ceil(x.e)); });
+    const span = hi - lo, P = h => (h - lo) / span * 100, PX = h => (h - lo) / span * W, cl = v => Math.min(100, Math.max(0, v));
+    const a = cl(P(sr)), b = cl(P(ss)), nextEv = evs.find(x => x.e > nowH);
+    let o = `<div class="rday" style="left:${a.toFixed(2)}%;width:${(b - a).toFixed(2)}%"></div>`;
+    let busy = -1;
+    evs.forEach(x => {
+      const r = x.raw, past = x.e <= nowH, c = personColor(r.who, r.color), w = Math.max(PX(x.e) - PX(x.s) - 3, 14), em = emojiFor(r.title);
+      const overlap = x.s < busy; busy = Math.max(busy, x.e);
+      const isHero = !!(lastHero && lastHero.e === r), isNext = !!(nextEv && nextEv.raw === r);
+      const lbl = (w >= 120 && !isHero) ? cut(r.title, 2) : '';   // the hero's name is already on screen: never say it twice
+      o += `<div class="blk" style="left:${P(x.s).toFixed(2)}%;width:${w.toFixed(1)}px;top:${overlap ? 12 : 6}px;height:${overlap ? 32 : 44}px;background:${c};opacity:${past ? .35 : 1};justify-content:${lbl ? 'flex-start' : 'center'}${isNext ? ';box-shadow:0 0 0 2px ' + GOLD + ';z-index:2' : ''}">` +
+        `${em && w >= 24 ? `<span class="be"${lbl ? ' style="margin-left:5px"' : ''}>${em}</span>` : ''}${lbl ? `<span>${esc(lbl)}</span>` : ''}</div>`;
+    });
+    [6, 12, 18].forEach(h => { if (h > lo && h < hi) o += `<div class="rdot" style="left:${P(h).toFixed(2)}%"></div>`; });
+    const nx = Math.min(Math.max(PX(nowH), 22), W - 22), isDay = nowH >= sr && nowH <= ss;
+    o += `<div class="sun" style="left:${nx.toFixed(1)}px"><div class="gl" style="background:radial-gradient(circle,${isDay ? 'rgba(255,210,127,.6)' : 'rgba(239,232,214,.4)'} 0%,rgba(0,0,0,0) 68%)"></div>` +
+      (isDay ? `<svg width="24" height="24" viewBox="0 0 26 26"><circle cx="13" cy="13" r="9" fill="#FFD27F"/><circle cx="13" cy="13" r="9" fill="none" stroke="${GOLD}" stroke-width="2"/></svg>`
+             : `<svg width="24" height="24" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="#EFE8D6"/></svg>`) + `</div>`;
+    set('.js-ribbon', o);
+  }
+
+  // ---------- Countdown clusters: no near-duplicates, tied dates stay together ----------
+  const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  function countdownClusters(list, shown) {
+    const items = (list || []).map(c => ({ days: c.days, ...splitWho(c.label), norm: normLabel(c.label) }))
+      .filter(a => !(shown || []).some(x => x.days === a.days && a.norm.length >= 3 && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
+    const kept = items.filter((a, i) => a.norm.length < 3 || !items.some((b, j) => j !== i && b.days === a.days && b.norm !== a.norm && b.norm.includes(a.norm)));
+    const seen = new Set(), uniq = kept.filter(a => { const k = a.days + '|' + a.norm; if (seen.has(k)) return false; seen.add(k); return true; });
+    const groups = [];
+    uniq.forEach(a => { let g = groups.find(x => x.days === a.days); if (!g) groups.push(g = { days: a.days, names: [] }); g.names.push(a); });
+    return groups.sort((a, b) => a.days - b.days).slice(0, 4);
+  }
+
+  // ---------- Agenda chips + countdown rings ----------
+  function renderAgenda(nowD) {
+    const host = $('.js-chips'); if (!data || !host) return;
+    const tmrD = new Date(nowD.getTime() + 864e5), tag = dayAbbr(tmrD), items = [];
+    const bdHero = !!(lastHero && lastHero.birthday);
+    // countdown rings come first: a chip whose date a ring already counts down is skipped, so each fact appears once
+    const day0 = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()).getTime(), base = [];
+    const markTo = (arr, title, days) => { const n = normLabel(title); if (n.length >= 3 && days != null) arr.push({ norm: n, days }); };
+    (data.today || []).filter(e => !e.allDay).forEach(e => markTo(base, e.title, 0));
+    if (lastHero && lastHero.e && lastHero.e.title) markTo(base, lastHero.e.title, lastHero.days != null ? lastHero.days : (lastHero.e.start ? Math.round((new Date(lastHero.e.start).setHours(0, 0, 0, 0) - day0) / 864e5) : 0));
+    const cl = countdownClusters(data.countdowns, base);
+    const ringed = (title, days) => { const n = normLabel(title); return n.length >= 3 && days != null && cl.some(g => g.days === days && g.names.some(a => a.norm.length >= 3 && (a.norm.includes(n) || n.includes(a.norm)))); };
+    const tidy = s => String(s).replace(/\s*·\s*turns\s+\d+/i, '');
+    const mk = (g, rank, o) => {
+      if (o.mark && ringed(o.mark.title, o.mark.days)) return;
+      rank = items.filter(i => i.g === g).length;   // rank among chips actually shown
+      const lead = o.emoji ? '' : o.who ? dotsHtml(o.who, o.color, 14) : svgIc('bell', 26, 'var(--dim)');
+      items.push({ g, rank, pri: o.pri != null ? o.pri : g === 'shop' ? 4 : g === 'wo' ? 5 : g === 'rem' ? (rank === 0 ? 2 : 6) : (rank === 0 ? 3 : 7), mark: o.mark || null,
+        html: `<span class="chip">${o.tag ? `<span class="tag">${esc(o.tag)}</span>` : ''}${o.icon ? svgIc(o.icon, 26, 'var(--dim)') : lead}<span class="ct">${o.emoji ? o.emoji + ' ' : ''}${esc(o.text)}</span></span>` });
+    };
+    // today's reminders
+    let r = 0;
+    (data.today || []).filter(e => e.allDay && !(bdHero && /['’]s birthday/i.test(e.title || ''))).forEach(e => mk('rem', r++, { emoji: emojiFor(e.title), who: e.who, color: e.color, text: cut(tidy(e.title)), mark: { title: e.title, days: 0 } }));
+    if (wx && wx.hi >= HOT_NUDGE) mk('rem', r++, { icon: 'drop', text: 'Hot, carry water' });
+    [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.todos || [])].forEach(t => mk('rem', r++, { emoji: emojiFor(t), text: cut(t), mark: { title: t, days: 0 } }));
+    // tomorrow
+    let t = 0;
+    (data.tomorrow || []).filter(e => e.time !== 'Gym').forEach(e => mk('tmr', t++, { tag, emoji: emojiFor(e.title), who: e.who, color: e.color,
+      text: e.allDay ? cut(tidy(e.title), 3) : `${cut(e.title, 2)} ${fmtT(new Date(e.start))}`, mark: { title: e.title, days: 1 } }));
+    if (data.pack) mk('tmr', t++, { tag, emoji: '🧳', text: cut('Pack ' + String(data.pack).toLowerCase(), 4) });
+    (data.tasks?.tomorrow || []).forEach(x => mk('tmr', t++, { tag, emoji: emojiFor(x), text: cut(x), mark: { title: x, days: 1 } }));
+    (data.tasks?.soon || []).forEach(x => {
+      const m = /^\s*([A-Za-z]{3,9})\s*·\s*(.+)$/.exec(String(x)), when = m ? m[1].slice(0, 3) : '', txt = m ? m[2] : String(x);
+      const di = DAYS.findIndex(d => d.slice(0, 3).toLowerCase() === when.toLowerCase());
+      mk('tmr', t++, { tag: when, emoji: emojiFor(txt), text: cut(txt), mark: { title: txt, days: di < 0 ? null : ((di - nowD.getDay() + 7) % 7 || 7) } });
+    });
+    if (wx && (wx.tRain >= 40 || Math.abs(wx.tHi - wx.hi) >= 4)) mk('tmr', t++, { tag, emoji: wxEmoji(wx.tCode, 1), text: wx.tRain >= 40 ? `${wx.tRain}%` : `${wx.tHi}°`, pri: 1 });
+    // shopping as one chip; items a dated reminder already covers are shown once, on their date
+    const flat = x => String(x).toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    const covered = [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.tasks?.soon || []), ...(data.tasks?.tomorrow || []), ...(data.todos || [])].map(flat);
+    const shopping = (data.shopping || []).filter(it => { const n = flat(it); return n.length < 3 || !covered.some(c => c.includes(n)); });
+    if (shopping.length) {
+      const out = []; let words = 0;
+      for (const it of shopping) { const w = String(it).trim().split(/\s+/).length; if (out.length && words + w > 4) break; out.push(it); words += w; }
+      mk('shop', 0, { emoji: '🛒', text: out.join(', ') + (shopping.length > out.length ? ` +${shopping.length - out.length}` : '') });
+    }
+    const w = data.workout;
+    if (w && w.title) mk('wo', 0, { icon: 'dumbbell', text: cut(w.title) });
+
+    // at most 5 chips, then "+N"; shed the least important first, until it fits two lines
+    const worst = () => vis.reduce((wi, it, i) => (wi < 0 || it.pri >= vis[wi].pri) ? i : wi, -1);
+    const vis = items.slice();
+    while (vis.length > 5) vis.splice(worst(), 1);
+    const draw = () => { const hid = items.length - vis.length; host.innerHTML = vis.map(i => i.html).join('') + (hid ? `<span class="chip more"><span class="ct">+${hid}</span></span>` : ''); };
+    draw();
+    for (let g = 0; g < 8 && vis.length > 1 && host.scrollHeight > 107; g++) { vis.splice(worst(), 1); draw(); }
+
+    // countdown rings (computed above): whatever is on screen (hero, ribbon blocks) is never counted down again
+    const R = 33.5, C = 2 * Math.PI * R;
+    set('.js-rings', cl.map(g => {
+      const alert = g.days <= CD_ALERT_DAYS, col = alert ? GOLD : 'var(--cream)', fill = Math.max(0, Math.min(1, 1 - g.days / 60));
+      let lab = g.names.map(n => n.title).join(' · '); if (lab.length > 14) lab = lab.slice(0, 13).trimEnd() + '…';
+      const who = []; g.names.forEach(n => { const p = personStyle(n.who); if (p) who.push(...(p.name === 'Everyone' ? [ALL3[0]] : [p.color])); });
+      const dots = who.map((c, i) => { const th = (40 + 30 * i) * Math.PI / 180; return `<i class="rp" style="left:${(36 + R * Math.sin(th) - 8).toFixed(1)}px;top:${(36 - R * Math.cos(th) - 8).toFixed(1)}px;background:${c}"></i>`; }).join('');
+      return `<div class="ring"><div class="rg"><svg width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="${R}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="5"/>` +
+        (fill > .01 ? `<circle cx="36" cy="36" r="${R}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C * fill).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 36 36)"/>` : '') +
+        `</svg><div class="rn tn${g.days === 0 ? ' sm' : ''}" style="color:${col}">${g.days === 0 ? 'today' : g.days}</div>${dots}</div><div class="rl">${esc(lab)}</div></div>`;
+    }).join(''));
+  }
+
+  // ---------- Weather: emoji, temperature, and only the exceptions ----------
+  function renderWeather(nowD, night) {
+    if (!wx) { set('.js-wx', ''); return; }
+    const nowH = hoursOf(nowD), isDay = nowH >= SR() && nowH <= SS();
+    let h = `<div class="wt">${night ? '' : `<span class="we">${wxEmoji(wx.code, isDay ? 1 : 0)}</span>`}<span class="wd tn">${wx.temp}°</span></div>`;
+    if (!night) {
+      const b = [], bdg = (c, icon, txt) => `<span class="bdg" style="background:${hexA(c, .22)}">${svgIc(icon, 22, c)}<span class="tn">${txt}</span></span>`;
+      if (wx.uv != null && Math.round(wx.uv) >= 3) b.push(bdg(uvCat(Math.round(wx.uv))[1], 'uv', Math.round(wx.uv)));
+      if (wx.rain >= 30) b.push(bdg('#8FC1F2', 'drop', wx.rain + '%'));
+      if (wx.aqi != null && wx.aqi > 100) b.push(bdg(aqiColor(wx.aqi), 'leaf', wx.aqi));
+      else if (wx.aqi != null && wx.aqi > 50) b.push(`<span class="aq"><i style="background:${aqiColor(wx.aqi)}"></i><span class="tn">${wx.aqi}</span></span>`);
+      if (b.length) h += `<div class="bds">${b.join('')}</div>`;
+    }
+    set('.js-wx', h);
+  }
+
+  function render() {
+    const nowD = clockNow(), nowMs = nowD.getTime(), night = isNight();
+    $('#stage').classList.toggle('night', night);
+    renderSky();
+    if (data) {
+      lastHero = night ? renderNightHero(nowD) : renderHero(nowMs);
+      renderRibbon(nowD);
+      if (night) { set('.js-chips', ''); set('.js-rings', ''); } else renderAgenda(nowD);
+      syncPhotos(data.photos || []);
+    }
+    renderWeather(nowD, night);
+    renderStatus();
+    maybeCelebrate();
+  }
+
+  function batteryNote() {
+    if (!F) return '';
+    try { if (!F.isPlugged()) return `Not charging, ${Math.round(F.getBatteryLevel())}%`; } catch (e) {}
+    return '';
+  }
+  function renderStatus() {
+    const el = $('.js-status'), parts = [];
+    if (!DEMO) {
+      const age = Date.now() - lastOk;
+      if (!lastOk) parts.push('Not connected');
+      else if (age > 30 * 60e3) parts.push(`Offline, last updated ${hm(new Date(lastOk))}`);
+    }
+    if (data && data.workout && data.workout.stale) parts.push('Workout sync overdue');
+    const bn = batteryNote(); if (bn) parts.push(bn);
+    el.textContent = parts.join(', ');
+    el.style.color = bn ? GOLD : '';
+  }
+
+  function isNight() { const h = clockNow().getHours(); return h >= NIGHT_FROM || h < NIGHT_TO; }
+
+  let lastMinute = -1;
+  function tick() {
+    const now = clockNow();
+    set('.js-clock', hm(now));
+    set('.js-date', isNight() ? '' : `${DAYS[now.getDay()].slice(0, 3)} ${now.getDate()} ${MONTHS[now.getMonth()].slice(0, 3)}`);
+    set('.js-i-clock', hm(now));
+    $('#dim').style.opacity = (!F && isNight()) ? '0.62' : '0';
+    if (now.getMinutes() !== lastMinute) { lastMinute = now.getMinutes(); render(); }
+    maybeCelebrate(); maybeInterlude();
+    renderStatus();
+  }
+
+  // ---------- Photo slider ----------
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function syncPhotos(list) {
+    const norm = list.map(p => typeof p === 'string' ? { id: p } : p).filter(p => p && p.id);
+    const key = norm.map(p => p.id).sort().join();
+    if (key === photoKey) return;
+    photoKey = key; photos = shuffle(norm); photoIdx = 0;
+    $('.js-ph-empty').style.display = photos.length ? 'none' : 'flex';
+    if (photos.length) nextPhoto();
+  }
+  const parseDate = t => { const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(t || ''); return m ? { y: +m[1], mo: +m[2], d: m[3] ? +m[3] : 0 } : null; };
+  const photoDate = t => { const p = parseDate(t); return p ? `${MONTHS[p.mo - 1].slice(0, 3)} ${p.y}` : ''; };
+  const thumb = (id, w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+  function nextPhoto() {
+    if (!photos.length || interActive || (isNight() && photoIdx > 0)) return;
+    const i = photoIdx++ % photos.length, p = photos[i], url = thumb(p.id, 1600), tiny = thumb(p.id, 64), img = new Image();
+    img.onload = () => {
+      const a = $('.js-ph-a'), b = $('.js-ph-b'), [show, hide] = photoLayer ? [a, b] : [b, a];
+      const w = p.w || img.naturalWidth, h = p.h || img.naturalHeight;
+      show.classList.toggle('landscape', w > h * 1.1);
+      show.querySelector('.ph-bg').style.backgroundImage = `url("${tiny}")`;
+      show.querySelector('.ph-fg').style.backgroundImage = `url("${url}")`;
+      show.classList.add('show'); hide.classList.remove('show');
+      photoLayer = 1 - photoLayer;
+      set('.js-ph-cap', esc(photoDate(p.t)));
+      const n = Math.min(photos.length, 5);
+      set('.js-ph-dots', n > 1 ? Array.from({ length: n }, (_, k) => `<span class="${k === i % n ? 'on' : ''}"></span>`).join('') : '');
+    };
+    img.onerror = () => { if (photos.length > 1) setTimeout(nextPhoto, 2000); };
+    img.src = url;
+  }
+
+  // ---------- Photo interlude: the photo owns the screen for 30 s, every ~10 min ----------
+  function pickInterludePhoto() {
+    const n = clockNow(), key = `${n.getFullYear()}-${n.getMonth()}-${n.getDate()}`;
+    let shown = {}; try { shown = JSON.parse(localStorage.getItem('dash-inter') || '{}'); } catch (e) {}
+    if (shown.day !== key) shown = { day: key, ids: [] };
+    const hit = photos.find(p => { const d = parseDate(p.t); return d && d.d === n.getDate() && d.mo === n.getMonth() + 1 && d.y < n.getFullYear() && !shown.ids.includes(p.id); });
+    const p = hit || photos[photoIdx % photos.length];
+    if (hit) { shown.ids.push(hit.id); try { localStorage.setItem('dash-inter', JSON.stringify(shown)); } catch (e) {} }
+    return p;
+  }
+  function interCaption(p) {
+    const d = parseDate(p.t); if (!d) return { sub: '', title: '' };
+    const n = clockNow(), months = (n.getFullYear() - d.y) * 12 + (n.getMonth() + 1 - d.mo), yrs = Math.floor(months / 12);
+    const onDay = d.d && d.mo === n.getMonth() + 1 && d.d === n.getDate() && d.y < n.getFullYear();
+    const ago = yrs >= 2 ? `${yrs} years ago` : yrs === 1 ? 'A year ago' : months >= 1 ? `${plural(months, 'month')} ago` : 'This month';
+    return { sub: onDay ? `On this day, ${yrs === 1 ? 'a year' : yrs + ' years'} ago` : ago, title: d.d ? `${d.d} ${MONTHS[d.mo - 1]} ${d.y}` : `${MONTHS[d.mo - 1]} ${d.y}` };
+  }
+  function startInterlude() {
+    if (interActive || !photos.length) return;
+    const p = pickInterludePhoto(); if (!p) return;
+    const url = thumb(p.id, 2000), tiny = thumb(p.id, 64), img = new Image();
+    img.onload = () => {
+      if (interActive) return;
+      interActive = true;
+      const w = p.w || img.naturalWidth, h = p.h || img.naturalHeight, land = w > h * 1.1, cap = interCaption(p);
+      set('.js-inter-imgs', `<div class="ibg" style="background-image:url('${tiny}')"></div><div class="ifg ${land ? 'land' : 'port'}" style="background-image:url('${url}')"></div>`);
+      set('.js-i-sub', esc(cap.sub)); set('.js-i-title', esc(cap.title));
+      set('.js-i-bar', '<i></i>');
+      const nowD = clockNow(), nxt = (data?.today || []).filter(e => !e.allDay && e.start > nowD.getTime())[0];
+      if (nxt) { const mins = Math.round((nxt.start - nowD.getTime()) / 60e3); set('.js-i-next', `<span>Next, ${esc(nxt.title)} ${mins <= 90 ? 'in ' + plural(mins, 'minute') : 'at ' + ampm(new Date(nxt.start))}</span>${dotsHtml(nxt.who, nxt.color, 30)}`); } else set('.js-i-next', '');
+      if (wx) set('.js-i-wx', `<span style="font-size:40px;line-height:1">${wxEmoji(wx.code, wx.day)}</span><span class="tn" style="font-family:var(--serif);font-size:52px;line-height:1">${wx.temp}°</span>`);
+      $('#inter').classList.add('on');
+      clearTimeout(interTimer); interTimer = setTimeout(endInterlude, INTER_FOR);
+    };
+    img.onerror = () => { lastInter = Date.now(); };
+    img.src = url;
+  }
+  function endInterlude() {
+    clearTimeout(interTimer); $('#inter').classList.remove('on');
+    setTimeout(() => { interActive = false; lastInter = Date.now(); nextPhoto(); }, 1000);
+  }
+  function maybeInterlude() {
+    if (interActive || !photos.length || isNight() || document.hidden || DEMO && !qs.get('inter')) return;
+    if (Date.now() - lastInter >= INTER_EVERY) startInterlude();
+  }
+  $('#inter').addEventListener('click', endInterlude);
+  window.__startInterlude = startInterlude;   // for previewing: open the console and call it
+
+  // ---------- Event moment: confetti once, on a birthday ----------
+  function maybeCelebrate() {
+    if (!data || document.hidden || isNight() || clockNow().getHours() < 6) return;
+    const bd = birthdayToday(); if (!bd) return;
+    const k = 'dash-bday', today = clockNow().toDateString();
+    let done = ''; try { done = localStorage.getItem(k) || ''; } catch (e) {}
+    if (done === today + bd.name && !qs.get('bday')) return;
+    if ($('#confetti').childElementCount) return;
+    try { localStorage.setItem(k, today + bd.name); } catch (e) {}
+    const cols = ['#F2A65A', '#F0B14A', '#D7B4F0', '#9CC4FF', '#A6E0C6', '#F28C7A', '#F3ECDF'];
+    let h = '';
+    for (let i = 0; i < 46; i++) h += `<i style="left:${(Math.random() * 98 + 1).toFixed(1)}%;width:${8 + Math.random() * 5 | 0}px;height:${14 + Math.random() * 8 | 0}px;border-radius:${[2, 2, 7][i % 3]}px;background:${cols[i % cols.length]};animation-duration:${(5 + Math.random() * 4).toFixed(1)}s;animation-delay:${(-Math.random() * 9).toFixed(1)}s"></i>`;
+    $('#confetti').innerHTML = h;
+    clearTimeout(confettiTimer); confettiTimer = setTimeout(() => { $('#confetti').innerHTML = ''; }, CONFETTI_FOR);
+  }
+
+  // ---------- Self-update: pick up new releases without anyone touching the tablet ----------
+  let lastCheck = Date.now();
+  async function checkForUpdate() {
+    lastCheck = Date.now();
+    try {
+      const t = await fetch(location.pathname + '?chk=' + Date.now(), { cache: 'no-store' }).then(r => r.text());
+      const m = /const BUILD = '([^']+)'/.exec(t);
+      if (m && m[1] !== BUILD) location.reload();
+    } catch (e) {}
+  }
+  window.__checkUpdate = checkForUpdate;
+
+  // ---------- Layout ----------
+  const DESIGN_H = 860, MIN_W = 1100;
+  let fitScale = 1, fitMode = 'window';
+  function viewBox() {
+    const vv = window.visualViewport;
+    if (vv && vv.width > 0 && vv.height > 0 && (vv.width < innerWidth * 0.98 || vv.height < innerHeight * 0.98)) { fitMode = 'visual'; return { W: vv.width, H: vv.height, x: vv.pageLeft || 0, y: vv.pageTop || 0 }; }
+    fitMode = 'window'; return { W: innerWidth, H: innerHeight, x: 0, y: 0 };
+  }
+  function fit() {
+    const { W, H, x, y } = viewBox();
+    let s = H / DESIGN_H, w = W / s, h = DESIGN_H;
+    if (w < MIN_W) { s = W / MIN_W; w = MIN_W; h = H / s; }
+    const st = $('#stage');
+    st.style.left = x + 'px'; st.style.top = y + 'px'; st.style.width = w + 'px'; st.style.height = h + 'px'; st.style.transform = `scale(${s})`;
+    fitScale = s;
+    if (data) { renderRibbon(clockNow()); fitTitle(); }
+  }
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); }
+  $('.js-photo').addEventListener('click', () => nextPhoto());   // tap the photo to skip
+
+  // ---------- Fully Kiosk integration (all no-ops in a normal browser) ----------
+  let lastLevel = null;
+  function setLevel(level) { if (!F || level === lastLevel) return; try { F.setScreenBrightness(level); lastLevel = level; } catch (e) {} }
+  function lightLevel() {
+    try { const lux = parseFloat(F.getSensorValue(5)); if (!isFinite(lux) || lux < 0) return null; return Math.round(20 + 235 * Math.pow(Math.min(1, Math.log10(lux + 1) / 3), 1.6)); } catch (e) { return null; }
+  }
+  function applyBrightness() {
+    if (!F) return;
+    const l = LIGHT_AUTO ? lightLevel() : null;
+    if (l != null) setLevel(isNight() ? Math.min(l, NIGHT_CAP) : l); else setLevel(isNight() ? NIGHT_LEVEL : DAY_LEVEL);
+  }
+  window.__fridgeRefresh = function () {
+    try {
+      if (Date.now() - lastOk > 60e3) loadData();
+      if (!wx || Date.now() - (wx.at || 0) > 5 * 60e3) loadWeather();
+      applyBrightness(); tick(); render(); maybeCelebrate();
+      if (Date.now() - lastCheck > 5 * 60e3) checkForUpdate();
+    } catch (e) {}
+  };
+  if (F) {
+    ['screenOn', 'onMotion', 'internetReconnect', 'networkReconnect'].forEach(ev => { try { F.bind(ev, '__fridgeRefresh();'); } catch (e) {} });
+    try { F.bind('pluggedAC', 'renderStatusNow();'); F.bind('unplugged', 'renderStatusNow();'); } catch (e) {}
+    window.renderStatusNow = renderStatus;
+  }
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+  if (qs.get('debug')) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:absolute;left:48px;top:520px;z-index:9;font:13px/1.45 monospace;color:#C9C0B3;background:rgba(0,0,0,.78);padding:8px 12px;border-radius:8px;white-space:pre';
+    $('#stage').appendChild(d);
+    const g = (fn, dflt = '?') => { try { return fn(); } catch (e) { return dflt; } };
+    const upd = () => {
+      d.textContent = [
+        `window ${innerWidth}x${innerHeight} @${devicePixelRatio}x  ratio ${(innerWidth / innerHeight).toFixed(2)}`,
+        `visual ${window.visualViewport ? Math.round(visualViewport.width) + 'x' + Math.round(visualViewport.height) + ' zoom ' + visualViewport.scale.toFixed(2) : 'n/a'}   screen ${screen.width}x${screen.height}`,
+        `fit by ${fitMode}   stage scale ${fitScale.toFixed(3)}`,
+        F ? `fully ${g(() => F.getFullyVersion())} / android ${g(() => F.getAndroidVersion())} / webview ${g(() => F.getWebviewVersion())}` : 'not running in Fully Kiosk',
+        F ? `light sensor (lux) ${g(() => F.getSensorValue(5))}   brightness now ${g(() => F.getScreenBrightness())}   applied ${lastLevel}` : '',
+        F ? `battery ${g(() => F.getBatteryLevel())}   plugged ${g(() => F.isPlugged())}` : '',
+        `weather Kondapur (${LAT}, ${LON})   updated ${wx && wx.at ? hm(new Date(wx.at)) : 'never'}`,
+        `build ${BUILD}   sun ${fmtH(SR())} to ${fmtH(SS())}   data age ${lastOk ? Math.round((Date.now() - lastOk) / 1000) + 's' : 'none'}   weather age ${wx && wx.at ? Math.round((Date.now() - wx.at) / 1000) + 's' : 'none'}`,
+      ].filter(Boolean).join('\n');
+    };
+    upd(); setInterval(upd, 4000);
+  }
+
+  // ---------- Start ----------
+  if (DEMO && qs.get('demo') !== '1') $('.banner').hidden = false;
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { render(); } catch (e) {} });
+  addEventListener('resize', fit); fit();
+  tick(); loadData(); loadWeather(); applyBrightness();
+  setInterval(tick, 10e3);
+  setInterval(applyBrightness, 60e3);
+  setInterval(checkForUpdate, 10 * 60e3);
+  setInterval(loadData, DATA_EVERY);
+  setInterval(loadWeather, WX_EVERY);
+  setInterval(nextPhoto, PHOTO_EVERY);
+  setTimeout(() => location.reload(), RELOAD_EVERY);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadData(); loadWeather(); tick(); } });
+})();
+</script>
+</body>
+</html>
