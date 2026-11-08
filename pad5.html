@@ -51,7 +51,7 @@
   .dots i + i { margin-left: -8px; }
 
   /* C. day ribbon */
-  .ribbon { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; overflow: hidden; background: rgba(8,10,24,.62); z-index: 4; }
+  .ribbon { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; overflow: hidden; background: rgba(8,10,24,.62); z-index: 7; }
   .rday { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(240,128,92,.66), rgba(250,208,120,.6) 50%, rgba(232,112,100,.66));
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
   .blk { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0 3px; border-radius: 22px; overflow: hidden; white-space: nowrap; color: var(--ink); font-size: 20px; font-weight: 500; }
@@ -110,6 +110,8 @@
   .sc-flash { background: #DCE8FF; opacity: 0; }
   .sc-flash.go { animation: flash .9s ease-out; }
   @keyframes flash { 0% { opacity: 0; } 8% { opacity: .16; } 18% { opacity: .03; } 28% { opacity: .11; } 100% { opacity: 0; } }
+  .sc-city { bottom: auto; width: 100%; height: calc(100% - 64px); z-index: 5; }
+  .sc-fog, .sc-rain, .sc-haze, .sc-flash { z-index: 6; }
   .still .scene *, .night .scene *, .hush .scene * { animation-play-state: paused !important; }
 
   /* tray over the photo: chips and countdown rings */
@@ -169,6 +171,7 @@
         <div class="sl sc-sky js-sc-sky"></div>
         <div class="sl sc-stars js-sc-stars"></div>
         <div class="sc-body js-sc-body"></div>
+        <svg class="sl sc-city js-sc-city" aria-hidden="true"></svg>
         <div class="sl sc-clouds js-sc-clouds"></div>
         <div class="sl sc-over js-sc-over"></div>
         <div class="sl sc-fog js-sc-fog" style="display:none"><i style="top:22%"></i><i style="top:48%"></i><i style="top:72%"></i></div>
@@ -218,7 +221,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261108c';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261108d';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -743,6 +746,42 @@
     $('.js-sc-haze').style.opacity = aqi > 100 ? Math.min(.45, (aqi - 100) / 380).toFixed(2) : '0';
     const lvl = (night || !FX_ON) ? 0 : rainLevel(code);
     rainSize(W, HOR); rainSet(lvl); flashArm(lvl === 3);
+    renderCity(W, HOR, T, dark);
+  }
+  // ---------- Skyline: a stylised West-Hyderabad silhouette (glass towers, a cable-stayed bridge, cranes) ----------
+  const city = { key: '', svg: '' };
+  function buildCity(W, H) {
+    let q = 7; const r = () => (q = (q * 16807) % 2147483647) / 2147483647, B = H;
+    const rect = (x, y, w, h) => `M${x.toFixed(1)} ${y.toFixed(1)}h${w.toFixed(1)}v${h.toFixed(1)}h${(-w).toFixed(1)}z`;
+    let far = '', near = '', win = '', red = '';
+    // far layer: lower, hazier blocks
+    for (let x = -30; x < W + 30;) { const w = 40 + r() * 70, h = 40 + r() * 100; far += rect(x, B - h, w, h + 2); if (r() < .3) far += rect(x + w * .3, B - h - 12 - r() * 14, w * .4, 14 + 4); x += w - 4 + r() * 10; }
+    // cable-stayed bridge (far layer): one tall pylon, a fan of cables, a long deck
+    const px = W * .5, deck = B - 30, top = B - 178;
+    far += rect(px - 4 - W * .17, deck, W * .34 + 8, 5) + `M${px - 20} ${deck}L${px - 3.5} ${top}L${px + 3.5} ${top}L${px + 20} ${deck}L${px + 12} ${deck}L${px} ${top + 40}L${px - 12} ${deck}Z`;
+    let cab = ''; for (let i = 1; i <= 9; i++) { const d = i * (W * .15 / 9); cab += `M${px} ${top + 6 + i * 2}L${px - d} ${deck}M${px} ${top + 6 + i * 2}L${px + d} ${deck}`; }
+    // near layer: tall glass-tower cluster on the left/centre (the part the photo card does not cover), lower blocks elsewhere
+    for (let x = -10; x < W + 20;) {
+      const f = x / W, w = 24 + r() * 40;
+      const h = f > .06 && f < .42 ? 160 + r() * 150 : f >= .42 && f < .62 ? 95 + r() * 85 : 42 + r() * 80, y = B - h, c = r();
+      near += rect(x, y, w, h + 2);
+      if (c < .22) near += rect(x + w * .2, y - 14, w * .6, 15);                                           // stepped crown
+      else if (c < .36) near += `M${x} ${y}L${x + w} ${y - 16}L${x + w} ${y}Z`;                              // slanted roof
+      else if (c < .5) near += `M${x + w * .5 - 2} ${y}L${x + w * .5} ${y - 22 - r() * 26}L${x + w * .5 + 2} ${y}Z`; // spire
+      else if (c < .6 && h > 140) near += rect(x + w * .5, y - 46, 2, 47) + rect(x + w * .5 - 26, y - 46, 40, 2) + rect(x + w * .5 - 22, y - 44, 1.5, 12); // construction crane
+      if (h > 200) red += `<circle cx="${(x + w * .5).toFixed(1)}" cy="${(y - 3).toFixed(1)}" r="1.8"/>`;
+      if (x > 340 && w > 24 && h > 50) for (let row = 0, ry = y + 8; ry < B - 8 && row < 20; row++, ry += 9) for (let cx = x + 4; cx < x + w - 6; cx += 7) if (r() < .34) win += rect(cx, ry, 3, 4);
+      x += w + (r() < .2 ? 3 + r() * 6 : -1);
+    }
+    return `<path class="cfar" d="${far}"/><path class="ccab" d="${cab}" fill="none" stroke-width="1.1"/><path class="cnear" d="${near}"/><path class="cwin" d="${win}" fill="#FFD27A"/><g class="cred" fill="#FF4B3A">${red}</g>`;
+  }
+  function renderCity(W, H, T, dark) {
+    const el = $('.js-sc-city'); if (!el) return;
+    const key = Math.round(W) + 'x' + Math.round(H);
+    if (city.key !== key) { city.key = key; el.setAttribute('viewBox', `0 0 ${Math.round(W)} ${Math.round(H)}`); el.setAttribute('preserveAspectRatio', 'none'); el.innerHTML = buildCity(Math.round(W), Math.round(H)); }
+    const farC = mix(T[2], '#0A1020', .5), nearC = mix(T[2], '#04060C', .88);
+    el.querySelector('.cfar').setAttribute('fill', farC); el.querySelector('.ccab').setAttribute('stroke', farC); el.querySelector('.cnear').setAttribute('fill', nearC);
+    el.querySelector('.cwin').setAttribute('opacity', Math.min(1, dark * 1.4).toFixed(2)); el.querySelector('.cred').setAttribute('opacity', Math.min(1, .25 + dark).toFixed(2));
   }
   function trayToggle() {
     const tr = $('.js-tray'); if (!tr) return;
