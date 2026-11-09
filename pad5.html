@@ -74,8 +74,8 @@
   .chip .tag { font-weight: 500; color: var(--dim); flex-shrink: 0; }
   .chip .be { font-size: calc(var(--u)*3); line-height: 1; flex-shrink: 0; }
   .chip.more { color: var(--dim); flex-shrink: 0; }
-  .wo { display: flex; align-items: center; gap: calc(var(--u)*1); height: calc(var(--u)*4.2); font-size: calc(var(--u)*3.6); color: var(--cream); white-space: nowrap; overflow: hidden; min-width: 0; }
-  .wo .wt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .wo { display: flex; align-items: flex-start; gap: calc(var(--u)*1.2); padding: calc(var(--u)*1.4) calc(var(--u)*1.8); border-radius: calc(var(--u)*2); background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.14); font-size: calc(var(--u)*3.2); line-height: 1.25; color: var(--cream); white-space: normal; min-width: 0; }
+  .wo .wt { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
   .wo:empty { display: none; }
   .meals { display: flex; flex-direction: column; gap: calc(var(--u)*.5); min-width: 0; }
   .meals:empty { display: none; }
@@ -238,7 +238,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261109a';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261109d';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -275,6 +275,22 @@
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
   const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 
+  // ---------- Priority markers: "!!" = P1, "!" = P2, no marker = P3 (marker at the start or end of a title) ----------
+  const prioOf = s => { const t = String(s || '').trim(); if (/^!!|!!$/.test(t)) return 1; if (/^!|!$/.test(t)) return 2; return 3; };
+  const stripPrio = s => String(s || '').trim().replace(/^!{1,2}\s*/, '').replace(/\s*!{1,2}$/, '').trim();
+  // how far ahead each level shows: P1 30 days, P2 10 days, P3 5 days
+  const CD_WINDOW = { 1: 30, 2: 10, 3: 5 };
+  const cdShow = c => c.days >= 0 && c.days <= (CD_WINDOW[c.pri ?? 3] ?? 5);
+  function normalize(d) {
+    if (!d) return d;
+    const ev = e => ({ ...e, pri: prioOf(e.title), title: stripPrio(e.title) });
+    return {
+      ...d,
+      today: (d.today || []).map(ev),
+      tomorrow: (d.tomorrow || []).map(ev),
+      countdowns: (d.countdowns || []).map(c => ({ ...c, pri: prioOf(c.label), label: stripPrio(c.label) })),
+    };
+  }
   const PALETTE = ['#9CC4FF', '#A6E0C6', '#D7B4F0', '#F5A08F', '#E8D36B', '#8FD0E0'];
   function personStyle(who, fallback) {
     const w = String(who || '').trim();
@@ -375,8 +391,8 @@
       today,
       tomorrow: [allDay('Diwali', 'All', '#E8E2D6', 1), ev('Weekly test', 7, 0, 60, 'Rhea', '#7FB3FF', 1)],
       tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: ['Mon · Parent-teacher meeting'], open: [] },
-      todos: ['Pay internet bill'], shopping: ['Curd', 'Bananas'],
-      countdowns: [{ label: 'Diwali', days: 1 }, { label: 'Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
+      todos: ['!! Pay internet bill'], shopping: ['Curd', 'Bananas'],
+      countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
       message: 'Proud of you, champ!', pack: 'Hall ticket', meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, rice, beans fry', prep: 'Soak rajma tonight' }, tomorrow: null }, photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: 'Hack Squat + Chest/Back' },
       presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
     };
@@ -384,15 +400,15 @@
 
   // ---------- Loading ----------
   async function loadData() {
-    if (DEMO) { data = sample(); lastOk = Date.now(); render(); return; }
+    if (DEMO) { data = normalize(sample()); lastOk = Date.now(); render(); return; }
     try {
       const r = await fetch(`${cfg.api}?key=${encodeURIComponent(cfg.key)}`, { cache: 'no-store' });
       const j = await r.json();
       if (j.error) throw new Error(j.error);
-      data = j; lastOk = Date.now();
+      data = normalize(j); lastOk = Date.now();
       try { localStorage.setItem('dash-data', JSON.stringify({ t: lastOk, j })); } catch (e) {}
     } catch (e) {
-      if (!data) { try { const c = JSON.parse(localStorage.getItem('dash-data')); if (c) { data = c.j; lastOk = c.t; } } catch (e2) {} }
+      if (!data) { try { const c = JSON.parse(localStorage.getItem('dash-data')); if (c) { data = normalize(c.j); lastOk = c.t; } } catch (e2) {} }
       console.warn('Data load failed', e);
     }
     render();
@@ -481,8 +497,13 @@
     if (nxt) { const mins = Math.round((nxt.start - nowMs) / 60e3); return { e: nxt, state: mins <= SOON_MIN ? 'soon' : 'next', mins }; }
     const tmr = (data?.tomorrow || []).find(e => !e.allDay);
     if (tmr) return { e: tmr, state: 'tomorrow' };
-    const cd = (data?.countdowns || []).find(c => c.days < CD_MAX_DAYS);
-    if (cd) { const p = splitWho(cd.label); return { state: 'cd', days: cd.days, e: { title: p.title, who: p.who }, meta: cd.days === 0 ? 'Today' : cd.days === 1 ? 'Tomorrow' : `In ${cd.days} days` }; }
+    const cands = (data?.countdowns || []).filter(cdShow).sort((a, b) => ((a.pri ?? 3) - (b.pri ?? 3)) || (a.days - b.days));
+    const cd = cands[0];
+    if (cd) {
+      const same = cd.pri === 1 ? cands.filter(c => c.pri === 1 && c.days === cd.days) : [cd];   // two P1s on the same date share the hero: "A / B"
+      const p = splitWho(cd.label);
+      return { state: 'cd', days: cd.days, e: { title: same.map(c => splitWho(c.label).title).join(' / '), who: p.who }, meta: cd.days === 0 ? 'Today' : cd.days === 1 ? 'Tomorrow' : `In ${cd.days} days` };
+    }
     return { e: { title: data?.message || 'A quiet day' }, state: 'idle' };
   }
   // the headline is a fixed 10u serif with ellipsis; no shrink-to-fit
@@ -553,13 +574,13 @@
   const keyOk = n => [...n].length >= 3 || /\p{Extended_Pictographic}/u.test(n);
   const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^\p{L}\p{N}\p{Extended_Pictographic}\s]/gu, '').replace(/\s+/g, ' ').trim();
   function countdownClusters(list, shown) {
-    const items = (list || []).filter(c => c.days < CD_MAX_DAYS).map(c => ({ days: c.days, ...splitWho(c.label), norm: normLabel(c.label) }))
+    const items = (list || []).filter(cdShow).map(c => ({ days: c.days, pri: c.pri ?? 3, ...splitWho(c.label), norm: normLabel(c.label) }))
       .filter(a => !(shown || []).some(x => keyOk(a.norm) && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
     const kept = items.filter((a, i) => a.norm.length < 3 || !items.some((b, j) => j !== i && b.days === a.days && b.norm !== a.norm && b.norm.includes(a.norm)));
     const seen = new Set(), uniq = kept.filter(a => { const k = a.days + '|' + a.norm; if (seen.has(k)) return false; seen.add(k); return true; });
     const groups = [];
-    uniq.forEach(a => { let g = groups.find(x => x.days === a.days); if (!g) groups.push(g = { days: a.days, names: [] }); g.names.push(a); });
-    return groups.sort((a, b) => a.days - b.days).slice(0, 3);   // at most three rings
+    uniq.forEach(a => { let g = groups.find(x => x.days === a.days); if (!g) groups.push(g = { days: a.days, names: [], pri: a.pri }); g.pri = Math.min(g.pri, a.pri); g.names.push(a); });
+    return groups.sort((a, b) => (a.pri - b.pri) || (a.days - b.days)).slice(0, 3);   // P1 first, then P2, then P3; at most three rings
   }
 
   // ---------- Agenda card: next meal, up to two reminder chips (+N), workout, countdown rings ----------
@@ -582,19 +603,19 @@
     const add = (pri, o) => { if (o.mark && ringed(o.mark.title)) return; items.push({ pri, tag: o.tag, emoji: o.emoji || '', icon: o.icon, text: o.text }); };
     // today's reminders
     let r = 0;
-    (data.today || []).filter(e => e.allDay && !(bdHero && /['’]s birthday/i.test(e.title || ''))).forEach(e => { add(r === 0 ? 2 : 6, { tag: nTag, emoji: emojiFor(e.title), text: short(tidy(e.title)), mark: { title: e.title } }); r++; });
-    if (wx && wx.hi >= HOT_NUDGE) add(1, { tag: nTag, icon: 'drop', text: 'Carry water' });
-    [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.todos || [])].forEach(t => { add(r === 0 ? 2 : 6, { tag: nTag, emoji: emojiFor(t), text: short(t), mark: { title: t } }); r++; });
+    (data.today || []).filter(e => e.allDay && !(bdHero && /['’]s birthday/i.test(e.title || ''))).forEach(e => { add(e.pri, { tag: nTag, emoji: emojiFor(e.title), text: short(tidy(e.title)), mark: { title: e.title } }); r++; });
+    if (wx && wx.hi >= HOT_NUDGE) add(2, { tag: nTag, icon: 'drop', text: 'Carry water' });
+    [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.todos || [])].forEach(t => { add(prioOf(t), { tag: nTag, emoji: emojiFor(stripPrio(t)), text: short(stripPrio(t)), mark: { title: stripPrio(t) } }); r++; });
     // tomorrow
-    let t = 0; const tp = () => (t++ === 0 ? 3 : 7);
-    (data.tomorrow || []).filter(e => e.time !== 'Gym').forEach(e => add(tp(), { tag: tTag, emoji: emojiFor(e.title), text: short(tidy(e.title)), mark: { title: e.title } }));
-    if (data.pack) add(tp(), { tag: tTag, emoji: '🧳', text: short('Pack ' + data.pack) });
-    (data.tasks?.tomorrow || []).forEach(x => add(tp(), { tag: tTag, emoji: emojiFor(x), text: short(x), mark: { title: x } }));
+    let t = 0;
+    (data.tomorrow || []).filter(e => e.time !== 'Gym').forEach(e => add(e.pri, { tag: tTag, emoji: emojiFor(e.title), text: short(tidy(e.title)), mark: { title: e.title } }));
+    if (data.pack) add(2, { tag: tTag, emoji: '🧳', text: short('Pack ' + data.pack) });
+    (data.tasks?.tomorrow || []).forEach(x => add(prioOf(x), { tag: tTag, emoji: emojiFor(stripPrio(x)), text: short(stripPrio(x)), mark: { title: stripPrio(x) } }));
     (data.tasks?.soon || []).forEach(x => {
       const m = /^\s*([A-Za-z]{3,9})\s*·\s*(.+)$/.exec(String(x)), when = m ? m[1].slice(0, 3) : '', txt = m ? m[2] : String(x);
-      add(tp(), { tag: when || tTag, emoji: emojiFor(txt), text: short(txt), mark: { title: txt } });
+      add(prioOf(txt), { tag: when || tTag, emoji: emojiFor(stripPrio(txt)), text: short(stripPrio(txt)), mark: { title: stripPrio(txt) } });
     });
-    if (wx && (wx.tRain >= 40 || Math.abs(wx.tHi - wx.hi) >= 4)) add(1, { tag: tTag, emoji: wxEmoji(wx.tCode, 1), text: wx.tRain >= 40 ? `${wx.tRain}% rain` : `${wx.tHi}°` });
+    if (wx && (wx.tRain >= 40 || Math.abs(wx.tHi - wx.hi) >= 4)) add(2, { tag: tTag, emoji: wxEmoji(wx.tCode, 1), text: wx.tRain >= 40 ? `${wx.tRain}% rain` : `${wx.tHi}°` });
     // shopping as one chip; items a dated reminder already covers are shown once, on their date
     const flat = x => String(x).toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
     const covered = [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.tasks?.soon || []), ...(data.tasks?.tomorrow || []), ...(data.todos || [])].map(flat);
@@ -845,6 +866,7 @@
 
   // ---------- Next meal: one line. breakfast to 10:30, lunch to 15:30, dinner to 22:00, then tomorrow's breakfast ----------
   function renderMeals(nowD) {
+    return; // MEALS HIDDEN FOR NOW: delete this line to re-enable
     const hh = hoursOf(nowD), t = data && data.meals;
     let row = null;
     if (t && t.today) {
