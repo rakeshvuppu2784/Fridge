@@ -258,7 +258,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261109-grid3';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261109-nofade';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -925,7 +925,7 @@
       const col = FIXED_COL[key] || (personStyle(me ? 'Me' : x.who) || {}).color || '#E8E2D6';
       const isHome = /\bhome\b/i.test(x.place), moving = x.event === 'leave';
       const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99;
-      const stale = moving && ageH > 12;                      // left somewhere long ago, never arrived: unknown
+      const stale = moving && !isHome && ageH > 12;           // left somewhere (not home) long ago, never arrived: unknown
       const badge = stale ? '·' : isHome ? '🏠' : placeEmoji(x.place);
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
       const label = `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
