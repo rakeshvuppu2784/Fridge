@@ -48,7 +48,7 @@
   .te { font-size: calc(var(--u)*4.2); line-height: 1; }
   .td { display: block; width: 22px; height: 22px; border-radius: 11px; }
   .ht { min-width: 0; }
-  .htitle { font-family: var(--serif); font-variation-settings: 'opsz' 48; font-weight: 400; font-size: calc(var(--u)*10); line-height: 1.1; letter-spacing: calc(var(--u)*-.1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .htitle { font-family: var(--serif); font-variation-settings: 'opsz' 48; font-weight: 400; font-size: calc(var(--u)*7); line-height: 1.1; letter-spacing: calc(var(--u)*-.1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hmeta { display: flex; align-items: center; gap: calc(var(--u)*1.6); font-size: calc(var(--u)*3); color: var(--dim); margin-top: calc(var(--u)*1); min-height: calc(var(--u)*4.2); white-space: nowrap; }
   .pill { display: inline-flex; align-items: center; height: calc(var(--u)*4.2); padding: 0 calc(var(--u)*1.6); border-radius: calc(var(--u)*2.1); background: var(--gold); color: var(--ink); font-weight: 500; font-size: calc(var(--u)*3.6); }
   .pill.dim { background: rgba(255,255,255,.14); color: var(--dim); }
@@ -238,7 +238,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261109d';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261109e';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
