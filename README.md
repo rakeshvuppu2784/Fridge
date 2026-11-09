@@ -1,2 +1,0 @@
-# Fridge
-iPad for HomeView
