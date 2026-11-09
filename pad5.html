@@ -41,6 +41,7 @@
   .fam[hidden] { display: none; }
   .fam .pp { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u)*1); }
   .fam .av { position: relative; width: calc(var(--u)*7); height: calc(var(--u)*7); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: calc(var(--u)*3); font-weight: 600; }
+  .fam .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
   .fam .bd { position: absolute; right: calc(var(--u)*-1); bottom: calc(var(--u)*-.6); width: calc(var(--u)*3.4); height: calc(var(--u)*3.4); border-radius: 50%; background: rgba(10,12,24,.88); display: flex; align-items: center; justify-content: center; font-size: calc(var(--u)*2.6); }
   .fam .since { font-size: calc(var(--u)*3); color: #C3CBD6; white-space: nowrap; }
   .fam .stale { opacity: .45; }
@@ -238,7 +239,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261109g';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261109-faces1';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -890,8 +891,9 @@
   const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
   // 24-hour time
   const hm24 = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-  // family presence: a fixed emoji per person (no initials)
-  const FACE = { me: '👨🏽', sujatha: '👩🏽', rhea: '🐒', lakshita: '🐀' };
+  // family presence: a fixed illustrated portrait per person (icons/<key>.png); falls back to the initial if the image fails
+  const FACE = { me: 'icons/me.png?v=1', sujatha: 'icons/sujatha.png?v=1', rhea: 'icons/rhea.png?v=1', lakshita: 'icons/lakshita.png?v=1' };
+  const faceHtml = (key, who) => { const ini = esc(String(who)[0] || '?'); return FACE[key] ? `<img src="${FACE[key]}" alt="${ini}" onerror="this.replaceWith(document.createTextNode(this.alt))">` : ini; };
   // fixed person colours (override any computed colour)
   const FIXED_COL = { me: '#F2B47A', sujatha: '#F28FAD', rhea: '#D7B4F0', lakshita: '#8FD0E0' };
   function renderFamily(nowMs) {
@@ -910,7 +912,7 @@
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
       const label = `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
       const homeRing = isHome ? `box-shadow:0 0 0 calc(var(--u)*.3) ${col};` : '';   // at home: a thin ring, no label
-      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${FACE[key] || esc(String(x.who)[0] || '?')}<span class="bd">${badge}</span></div>${!isHome && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
+      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${!isHome && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
     }).join(''));
     el.hidden = false;
   }
