@@ -231,11 +231,11 @@
   const NIGHT_FROM = 22, NIGHT_TO = 6;                   // dim / pause photo extras between these hours
   const DAY_LEVEL = -1, NIGHT_LEVEL = 25, NIGHT_CAP = 60; // Fully brightness: 0-255, -1 = device default
   const F = (typeof window.fully !== 'undefined') ? window.fully : null;
-  const RAIN_NUDGE = 60, HOT_NUDGE = 38, AQI_NUDGE = 200, UV_NUDGE = 8, SOON_MIN = 60, CD_ALERT_DAYS = 3;
+  const RAIN_NUDGE = 60, HOT_NUDGE = 38, AQI_NUDGE = 200, UV_NUDGE = 8, SOON_MIN = 60, CD_ALERT_DAYS = 3, CD_MAX_DAYS = 60;
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261109l';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261109m';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -472,7 +472,7 @@
     if (nxt) { const mins = Math.round((nxt.start - nowMs) / 60e3); return { e: nxt, state: mins <= SOON_MIN ? 'soon' : 'next', mins }; }
     const tmr = (data?.tomorrow || []).find(e => !e.allDay);
     if (tmr) return { e: tmr, state: 'tomorrow' };
-    const cd = (data?.countdowns || [])[0];
+    const cd = (data?.countdowns || []).find(c => c.days < CD_MAX_DAYS);
     if (cd) { const p = splitWho(cd.label); return { state: 'cd', days: cd.days, e: { title: p.title, who: p.who }, meta: cd.days === 0 ? 'Today' : cd.days === 1 ? 'Tomorrow' : `In ${cd.days} days` }; }
     return { e: { title: data?.message || 'A quiet day' }, state: 'idle' };
   }
@@ -555,7 +555,7 @@
   const keyOk = n => [...n].length >= 3 || /\p{Extended_Pictographic}/u.test(n);
   const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^\p{L}\p{N}\p{Extended_Pictographic}\s]/gu, '').replace(/\s+/g, ' ').trim();
   function countdownClusters(list, shown) {
-    const items = (list || []).map(c => ({ days: c.days, ...splitWho(c.label), norm: normLabel(c.label) }))
+    const items = (list || []).filter(c => c.days < CD_MAX_DAYS).map(c => ({ days: c.days, ...splitWho(c.label), norm: normLabel(c.label) }))
       .filter(a => !(shown || []).some(x => keyOk(a.norm) && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
     const kept = items.filter((a, i) => a.norm.length < 3 || !items.some((b, j) => j !== i && b.days === a.days && b.norm !== a.norm && b.norm.includes(a.norm)));
     const seen = new Set(), uniq = kept.filter(a => { const k = a.days + '|' + a.norm; if (seen.has(k)) return false; seen.add(k); return true; });
