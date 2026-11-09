@@ -124,6 +124,11 @@
   /* tray over the photo: chips and countdown rings */
   .tray { position: absolute; left: 16px; right: 16px; bottom: 16px; padding: 14px 14px 12px; border-radius: 24px; background: rgba(12,10,9,.78); display: flex; flex-direction: column; gap: 12px; z-index: 2; }
   .tray .chips:empty, .tray .rings:empty { display: none; }
+  .meals { display: flex; flex-direction: column; gap: 4px; padding: 4px 8px 2px; }
+  .meals:empty { display: none; }
+  .mrow { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; height: 34px; font-size: 22px; }
+  .mv { color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mprep { color: var(--gold); font-size: 22px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 2px; }
 
   /* F. photo */
   .photo { position: relative; z-index: 5; border-radius: 28px; overflow: hidden; background: #2A241F; }
@@ -197,6 +202,7 @@
       <div class="ph-cap js-ph-cap"></div>
       <div class="ph-dots js-ph-dots"></div>
       <div class="tray js-tray">
+        <div class="meals js-meals"></div>
         <div class="chips js-chips"></div>
         <div class="rings js-rings"></div>
       </div>
@@ -229,7 +235,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261109a';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261109b';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -362,7 +368,7 @@
       tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: ['Mon · Parent-teacher meeting'], open: [] },
       todos: ['Pay internet bill'], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: 'Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
-      message: 'Proud of you, champ!', pack: 'Hall ticket', photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: 'Hack Squat + Chest/Back' },
+      message: 'Proud of you, champ!', pack: 'Hall ticket', meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, rice, beans fry', prep: 'Soak rajma tonight' }, tomorrow: null }, photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: 'Hack Squat + Chest/Back' },
       presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
     };
   }
@@ -823,8 +829,18 @@
   }
   function trayToggle() {
     const tr = $('.js-tray'); if (!tr) return;
-    const any = ($('.js-chips').innerHTML || $('.js-rings').innerHTML);
+    const any = ($('.js-meals').innerHTML || $('.js-chips').innerHTML || $('.js-rings').innerHTML);
     tr.style.display = any ? '' : 'none';
+  }
+
+  // ---------- Meals: today's row, picked by the server from the Meals tab (weekday match) ----------
+  function renderMeals() {
+    const m = data && data.meals && data.meals.today;
+    if (!m) { set('.js-meals', ''); return; }
+    const rows = [['🍳', 'Breakfast', m.breakfast], ['🥡', 'Lunch box', m.lunch], ['🍽️', 'Dinner', m.dinner]].filter(r => r[2]);
+    let h = rows.map(r => '<div class="mrow" title="' + esc(r[1]) + '"><span>' + r[0] + '</span><span class="mv">' + esc(r[2]) + '</span></div>').join('');
+    if (m.prep) h += '<div class="mprep">⏰ ' + esc(m.prep) + '</div>';
+    set('.js-meals', h);
   }
 
   // ---------- Family presence: iPhone Shortcuts (Arrive / Leave) report to Apps Script ----------
@@ -865,7 +881,7 @@
       renderFamily(nowMs);
       renderRibbon(nowD);
       renderScene(nowD, night);
-      if (night) { set('.js-chips', ''); set('.js-rings', ''); } else renderAgenda(nowD);
+      if (night) { set('.js-chips', ''); set('.js-rings', ''); set('.js-meals', ''); } else { renderMeals(); renderAgenda(nowD); }
       trayToggle();
       syncPhotos(data.photos || []);
     }
