@@ -39,6 +39,13 @@
 
   /* B. hero */
   .hero { position: relative; z-index: 5; display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 20px; align-items: start; min-height: 64px; }
+  .fam { position: relative; z-index: 5; display: flex; gap: 22px; align-items: flex-start; }
+  .fam[hidden] { display: none; }
+  .fam .pp { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .fam .av { position: relative; width: 56px; height: 56px; border-radius: 28px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; }
+  .fam .bd { position: absolute; right: -8px; bottom: -6px; width: 32px; height: 32px; border-radius: 16px; background: rgba(10,12,24,.88); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .fam .since { font-size: 18px; color: var(--dim); white-space: nowrap; }
+  .fam .stale { opacity: .45; }
   .tile { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; }
   .te { font-size: 36px; line-height: 1; }
   .td { display: block; width: 22px; height: 22px; border-radius: 11px; }
@@ -167,6 +174,7 @@
         <div class="hw js-wx"></div>
       </div>
       <div class="hero js-hero"></div>
+      <div class="fam js-fam" hidden></div>
       <div class="scene js-scene">
         <div class="sl sc-sky js-sc-sky"></div>
         <div class="sl sc-stars js-sc-stars"></div>
@@ -221,7 +229,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261108e';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261109a';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -355,6 +363,7 @@
       todos: ['Pay internet bill'], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: 'Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
       message: 'Proud of you, champ!', pack: 'Hall ticket', photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: 'Hack Squat + Chest/Back' },
+      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
     };
   }
 
@@ -818,6 +827,34 @@
     tr.style.display = any ? '' : 'none';
   }
 
+  // ---------- Family presence: iPhone Shortcuts (Arrive / Leave) report to Apps Script ----------
+  const ME_NAME = 'Rakesh';                                   // shown as 'Me', matching the calendar chips
+  const FAMILY_ORDER = ['rakesh', 'sujatha', 'rhea', 'lakshita'];
+  const PLACE_MAP = [
+    [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
+    [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
+    [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
+  ];
+  const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
+  function renderFamily(nowMs) {
+    const el = $('.js-fam'), list = (data?.presence || []).filter(x => x && x.who && x.place);
+    if (!list.length) { el.hidden = true; set('.js-fam', ''); return; }
+    const rank = w => { const i = FAMILY_ORDER.indexOf(String(w).toLowerCase()); return i < 0 ? 99 : i; };
+    list.sort((a, b) => rank(a.who) - rank(b.who) || String(a.who).localeCompare(b.who));
+    set('.js-fam', list.map(x => {
+      const me = String(x.who).toLowerCase() === ME_NAME.toLowerCase();
+      const p = personStyle(me ? 'Me' : x.who) || { label: '?', color: '#E8E2D6' };
+      const moving = x.event === 'leave', atHome = !moving && /\bhome\b/i.test(x.place);
+      const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99;
+      const stale = moving && ageH > 12;                      // left somewhere long ago, never arrived: unknown
+      const badge = stale ? '·' : moving ? '🚗' : placeEmoji(x.place);
+      const since = !atHome && !stale && x.at ? `<span class="since tn">${fmtT(new Date(x.at))}</span>` : '';
+      const label = `${x.who}: ${moving ? 'left' : 'at'} ${x.place}`;
+      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};color:${p.color}">${esc(p.label)}<span class="bd">${badge}</span></div>${since}</div>`;
+    }).join(''));
+    el.hidden = false;
+  }
+
   function render() {
     const nowD = clockNow(), nowMs = nowD.getTime(), night = isNight();
     $('#stage').classList.toggle('night', night);
@@ -825,6 +862,7 @@
     renderSky();
     if (data) {
       lastHero = night ? renderNightHero(nowD) : renderHero(nowMs);
+      renderFamily(nowMs);
       renderRibbon(nowD);
       renderScene(nowD, night);
       if (night) { set('.js-chips', ''); set('.js-rings', ''); } else renderAgenda(nowD);
