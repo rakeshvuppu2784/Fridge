@@ -20,7 +20,7 @@
   #stage { position: absolute; top: 0; left: 0; width: 1204px; height: 860px; transform-origin: 0 0; background: #14110F; overflow: hidden; }
   #sky { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #1B2A3D, #25394F 50%, #33506A); }
   #sky::after { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(10,9,8,.14), rgba(10,9,8,.5)); }
-  .grid { position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: calc(64px + var(--u)*4) calc(var(--u)*5) calc(var(--u)*5); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--u)*52); gap: calc(var(--u)*3); }
+  .grid { position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: calc(var(--u)*5) calc(var(--u)*5) calc(64px + var(--u)*2); display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--u)*52); gap: calc(var(--u)*3); }
   .left { display: flex; flex-direction: column; gap: calc(var(--u)*5); min-width: 0; min-height: 0; }
 
   /* A. header */
@@ -57,7 +57,7 @@
   .dots i + i { margin-left: -8px; }
 
   /* C. day ribbon */
-  .ribbon { position: absolute; left: 0; right: 0; top: 0; height: 64px; overflow: hidden; background: rgba(8,10,24,.62); z-index: 7; }
+  .ribbon { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; overflow: hidden; background: rgba(8,10,24,.62); z-index: 7; }
   .rday { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(240,128,92,.66), rgba(250,208,120,.6) 50%, rgba(232,112,100,.66));
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
   .blk { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0 3px; border-radius: 22px; overflow: hidden; white-space: nowrap; color: var(--ink); font-size: calc(var(--u)*2.6); font-weight: 500; }
@@ -99,8 +99,8 @@
 
   /* scene: the window above the horizon ribbon */
   .scene { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 0; overflow: hidden; background: #0E1630; }
-  .scene::after { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 3; pointer-events: none; background: linear-gradient(180deg, rgba(8,10,20,.44), rgba(8,10,20,.66)); }
-  .sl { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; }
+  .scene::after { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 64px; z-index: 3; pointer-events: none; background: linear-gradient(180deg, rgba(8,10,20,.44), rgba(8,10,20,.66)); }
+  .sl { position: absolute; left: 0; top: 0; right: 0; bottom: 64px; pointer-events: none; }
   .sc-sky { bottom: 0; }
   .sc-body { position: absolute; width: 0; height: 0; z-index: 4; }
   .sc-body i, .sc-body svg { position: absolute; display: block; }
@@ -117,12 +117,12 @@
   .sc-fog { background: rgba(215,220,228,.22); }
   .sc-fog i { position: absolute; left: -10%; width: 120%; height: 96px; background: linear-gradient(to bottom, rgba(225,230,236,0), rgba(225,230,236,.42), rgba(225,230,236,0)); animation: fogdrift 40s ease-in-out infinite alternate; }
   @keyframes fogdrift { from { transform: translateX(-4%); } to { transform: translateX(4%); } }
-  .sc-rain { bottom: auto; width: 100%; height: 100%; }
+  .sc-rain { bottom: auto; width: 100%; height: calc(100% - 64px); }
   .sc-haze { background: linear-gradient(to top, rgba(214,146,76,.95), rgba(214,146,76,0) 90%); opacity: 0; }
   .sc-flash { background: #DCE8FF; opacity: 0; }
   .sc-flash.go { animation: flash .9s ease-out; }
   @keyframes flash { 0% { opacity: 0; } 8% { opacity: .16; } 18% { opacity: .03; } 28% { opacity: .11; } 100% { opacity: 0; } }
-  .sc-city { top: auto; bottom: 0; height: 0; z-index: 5; }
+  .sc-city { top: auto; bottom: 64px; height: 0; z-index: 5; }
   .sc-fog, .sc-rain, .sc-haze, .sc-flash { z-index: 6; }
   .still .scene *, .night .scene *, .hush .scene * { animation-play-state: paused !important; }
 
@@ -238,7 +238,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261109f';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261109g';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -740,7 +740,7 @@
   function renderScene(nowD, night) {
     const sc = $('.js-scene'); if (!sc) return;
     $('#stage').classList.toggle('still', !FX_ON);
-    const W = sc.clientWidth || 648, H = sc.clientHeight || 440, HOR = Math.max(60, H);
+    const W = sc.clientWidth || 648, H = sc.clientHeight || 440, HOR = Math.max(60, H - 64);
     const nowH = hoursOf(nowD), sr = SR(), ss = SS(), sr2 = SR2() + 24;
     const T = skyAt(nowH, SCENE), sky = $('.js-sc-sky'), css = `linear-gradient(180deg,${T[0]} 0%,${T[1]} 55%,${T[2]} 100%)`;
     if (sky.dataset.c !== css) { sky.style.background = css; sky.dataset.c = css; }
