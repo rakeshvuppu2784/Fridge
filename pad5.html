@@ -25,7 +25,7 @@
 
   /* A. header */
   .hd { display: flex; align-items: flex-start; gap: 24px; }
-  .hd > div:first-child { position: relative; z-index: 5; }
+  .hd > div:first-child { position: relative; z-index: 5; min-width: calc(var(--u)*37.5); }   /* fits "12:59", so the family grid never shifts with the clock width */
   .clock { font-family: var(--serif); font-variation-settings: 'opsz' 48; font-weight: 300; font-size: calc(var(--u)*17); line-height: 1; letter-spacing: calc(var(--u)*-.35); white-space: nowrap; }
   .date { font-size: calc(var(--u)*2.6); color: var(--dim); margin-top: calc(var(--u)*.6); white-space: nowrap; }
   .hw { position: absolute; left: calc(var(--u)*5); bottom: calc(var(--u)*17); z-index: 5; display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--u)*1.4); }
@@ -37,12 +37,12 @@
 
   /* B. hero */
   .hero { position: relative; z-index: 5; display: grid; grid-template-columns: calc(var(--u)*9) minmax(0, 1fr); column-gap: calc(var(--u)*2); align-items: start; min-height: calc(var(--u)*9); }
-  .fam { position: relative; z-index: 5; display: flex; flex-wrap: nowrap; gap: calc(var(--u)*3.5); align-items: flex-start; }
+  .fam { position: relative; z-index: 5; display: grid; grid-template-columns: repeat(2, calc(var(--u)*10)); grid-auto-rows: calc(var(--u)*11); column-gap: calc(var(--u)*1.5); row-gap: 0; justify-items: center; align-items: start; margin-left: calc(var(--u)*2); }
   .fam[hidden] { display: none; }
   .fam .pp { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u)*1); }
   .fam .av { position: relative; width: calc(var(--u)*7); height: calc(var(--u)*7); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: calc(var(--u)*3); font-weight: 600; }
   .fam .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
-  .fam .bd { position: absolute; right: calc(var(--u)*-1); bottom: calc(var(--u)*-.6); width: calc(var(--u)*3.4); height: calc(var(--u)*3.4); border-radius: 50%; background: rgba(10,12,24,.88); display: flex; align-items: center; justify-content: center; font-size: calc(var(--u)*2.6); }
+  .fam .bd { position: absolute; right: calc(var(--u)*-1); bottom: calc(var(--u)*-.6); width: calc(var(--u)*3.4); height: calc(var(--u)*3.4); border-radius: 50%; background: transparent; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); display: flex; align-items: center; justify-content: center; font-size: calc(var(--u)*2.6); }
   .fam .since { font-size: calc(var(--u)*3); color: #C3CBD6; white-space: nowrap; }
   .fam .stale { opacity: .45; }
   .tile { width: calc(var(--u)*9); height: calc(var(--u)*9); border-radius: calc(var(--u)*2); display: flex; align-items: center; justify-content: center; }
@@ -168,6 +168,25 @@
   .status { position: absolute; right: 18px; bottom: 8px; font-size: calc(var(--u)*2.6); color: var(--cream); z-index: 7; }
   .banner { position: absolute; left: 0; right: 0; top: 0; padding: 6px 48px; font-size: calc(var(--u)*2.6); background: #3A2A10; color: #F2C27A; z-index: 9; }
   @media (prefers-reduced-motion: reduce) { .ph { transition: none; } #inter .ifg.land { animation: none; } * { animation-duration: 0s !important; } }
+  /* DESK TYPE SCALE: desk viewing distance (~60 cm) needs smaller type than a fridge. These override the sizes above; tune here only. */
+  .clock { font-size: calc(var(--u)*12.5); }
+  .date { font-size: calc(var(--u)*2.2); }
+  .we { font-size: 46px; }
+  .wd { font-size: calc(var(--u)*8.5); }
+  .bdg { font-size: calc(var(--u)*2.3); }
+  .fam .av { font-size: calc(var(--u)*2.4); }
+  .fam .bd { font-size: calc(var(--u)*2.6); }
+  .fam .since { font-size: calc(var(--u)*2.3); }
+  .te { font-size: calc(var(--u)*3.4); }
+  .htitle { font-size: calc(var(--u)*5.2); }
+  .hmeta { font-size: calc(var(--u)*2.3); }
+  .pill { font-size: calc(var(--u)*2.8); }
+  .blk, .blk .be { font-size: calc(var(--u)*2.1); }
+  .chip, .chip .be { font-size: calc(var(--u)*2.3); }
+  .wo { font-size: calc(var(--u)*2.5); }
+  .mrow, .rn { font-size: calc(var(--u)*2.8); }
+  .rn.sm, .rl { font-size: calc(var(--u)*2.1); }
+  .ph-cap, .ph-empty, .status, .banner { font-size: calc(var(--u)*2.1); }
 </style>
 </head>
 <body>
@@ -177,10 +196,10 @@
     <div class="left">
       <div class="hd">
         <div><div class="clock tn js-clock"></div><div class="date js-date"></div></div>
+        <div class="fam js-fam" hidden></div>
         <div class="hw js-wx"></div>
       </div>
       <div class="hero js-hero"></div>
-      <div class="fam js-fam" hidden></div>
     </div>
     <div class="rcol">
     <div class="photo js-photo">
@@ -239,7 +258,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261109-faces1';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261109-grid2';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -754,7 +773,7 @@
     const k0 = sc.getBoundingClientRect().width / W || 1, s0 = sc.getBoundingClientRect(), R = 58;
     const edge = (el, last) => { if (!el) return 0; const t = last ? el.lastElementChild || el : el, rg = document.createRange(); rg.selectNodeContents(t); return (rg.getBoundingClientRect().right - s0.left) / k0; };
     const heroR = Math.max(edge($('.htitle')), edge($('.hmeta'), true)), hwR = ($('.hw').getBoundingClientRect().right - s0.left) / k0, photoL = ($('.js-photo').getBoundingClientRect().left - s0.left) / k0;
-    const x1 = photoL - R - 16, x0 = Math.min(x1, Math.max(hwR + R + 24, heroR + R + 28, 300)), peak = Math.max(R + 66, .15 * H);
+    const x1 = photoL - R - 16, x0 = Math.min(x1, Math.max(hwR + R + 24, heroR + R + 28, 300)), famEl = $('.js-fam'), famB = famEl && !famEl.hidden ? (famEl.getBoundingClientRect().bottom - s0.top) / k0 : 0, peak = Math.max(R + 66, .15 * H, famB ? famB + R + 12 : 0);   // sun/moon arc never dips under the family grid
     const bx = x0 + (x1 - x0) * f, by = HOR - alt * (HOR - peak) - 6;
     const key = isDay ? 'sun' : 'moon' + Math.round(ph * 60);
     if (body.dataset.k !== key) { body.dataset.k = key; body.innerHTML = isDay ? '<i class="bgl"></i><i class="bco"></i>' : `<i class="bgl"></i>${moonSvg(ph)}`; }
@@ -882,7 +901,8 @@
 
   // ---------- Family presence: iPhone Shortcuts (Arrive / Leave) report to Apps Script ----------
   const ME_NAME = 'Rakesh';                                   // shown as 'Me', matching the calendar chips
-  const FAMILY_ORDER = ['rakesh', 'rhea', 'sujatha', 'lakshita'];
+  // fixed 2x2 slots [row, col]: Rakesh and Sujatha on top, Rhea and Lakshita below; never reordered by arrival time
+  const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
   const PLACE_MAP = [
     [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
     [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
@@ -899,8 +919,6 @@
   function renderFamily(nowMs) {
     const el = $('.js-fam'), list = (data?.presence || []).filter(x => x && x.who && x.place);
     if (!list.length) { el.hidden = true; set('.js-fam', ''); return; }
-    const rank = w => { const i = FAMILY_ORDER.indexOf(String(w).toLowerCase()); return i < 0 ? 99 : i; };
-    list.sort((a, b) => rank(a.who) - rank(b.who) || String(a.who).localeCompare(b.who));
     set('.js-fam', list.map(x => {
       const me = String(x.who).toLowerCase() === ME_NAME.toLowerCase();
       const key = me ? 'me' : String(x.who).toLowerCase();
@@ -912,7 +930,8 @@
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
       const label = `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
       const homeRing = isHome ? `box-shadow:0 0 0 calc(var(--u)*.3) ${col};` : '';   // at home: a thin ring, no label
-      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${!isHome && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
+      const slot = FAMILY_SLOT[key], pos = slot ? `grid-row:${slot[0]};grid-column:${slot[1]};` : '';
+      return `<div class="pp${stale ? ' stale' : ''}" style="${pos}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${!isHome && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
     }).join(''));
     el.hidden = false;
   }
