@@ -39,10 +39,10 @@
 
   /* B. hero */
   .hero { position: relative; z-index: 5; display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 20px; align-items: start; min-height: 64px; }
-  .fam { position: relative; z-index: 5; display: grid; grid-template-columns: repeat(2, max-content); gap: 18px 40px; justify-content: start; }
+  .fam { position: relative; z-index: 5; display: flex; flex-wrap: nowrap; gap: 18px; align-items: flex-start; }
   .fam[hidden] { display: none; }
   .fam .pp { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .fam .av { position: relative; width: 56px; height: 56px; border-radius: 28px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; }
+  .fam .av { position: relative; width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; }
   .fam .bd { position: absolute; right: -8px; bottom: -6px; width: 32px; height: 32px; border-radius: 16px; background: rgba(10,12,24,.88); display: flex; align-items: center; justify-content: center; font-size: 18px; }
   .fam .since { font-size: 18px; color: var(--dim); white-space: nowrap; }
   .fam .stale { opacity: .45; }
@@ -235,7 +235,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261109j';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261109k';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -486,6 +486,13 @@
     const tile = `<div class="tile" style="background:${hexA(o.color, .22)}">${o.emoji ? `<span class="te">${o.emoji}</span>` : `<i class="td" style="background:linear-gradient(${o.color},${o.color})"></i>`}</div>`;
     return `${tile}<div class="ht"><div class="htitle">${esc(o.title)}</div><div class="hmeta">${o.meta || ''}</div></div>`;
   }
+  // countdown as a small ring with the days inside (same language as the countdown rings)
+  const miniRing = (days, size = 44) => {
+    const r = size / 2 - 4, c = 2 * Math.PI * r, h = size / 2, alert = days <= CD_ALERT_DAYS, col = alert ? GOLD : 'var(--cream)', fill = Math.max(0, Math.min(1, 1 - days / 60));
+    return `<span style="position:relative;display:inline-block;width:${size}px;height:${size}px;flex-shrink:0"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4"/>` +
+      (fill > .01 ? `<circle cx="${h}" cy="${h}" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${(c * fill).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${h} ${h})"/>` : '') +
+      `</svg><span class="tn" style="position:absolute;left:0;top:0;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:${Math.round(size * .42)}px;color:${col}">${days === 0 ? 'today' : days}</span></span>`;
+  };
   function renderHero(nowMs) {
     const h = heroPick(nowMs);
     if (h.birthday) {
@@ -497,7 +504,7 @@
     else if (h.state === 'soon') parts.push(`<span class="pill">${h.mins > 0 ? `in ${h.mins} min` : 'now'}</span>`);
     else if (h.state === 'next') parts.push(`<span class="tn">${fmtT(new Date(e.start))}</span>`);
     else if (h.state === 'tomorrow') parts.push(`<span class="tn">${dayAbbr(new Date(nowMs + 864e5))} ${fmtT(new Date(e.start))}</span>`);
-    else if (h.state === 'cd') parts.push(h.days <= CD_ALERT_DAYS ? `<span class="pill">${esc(h.meta)}</span>` : esc(h.meta));
+    else if (h.state === 'cd') parts.push(miniRing(h.days, 44));
     const d = dotsHtml(e.who, e.color, 22); if (d) parts.push(d);
     set('.js-hero', heroHtml({ emoji: emojiFor(e.title), color: personColor(e.who, e.color), title: e.title, meta: parts.join('') }));
     fitTitle(); return h;
@@ -547,7 +554,7 @@
   const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
   function countdownClusters(list, shown) {
     const items = (list || []).map(c => ({ days: c.days, ...splitWho(c.label), norm: normLabel(c.label) }))
-      .filter(a => !(shown || []).some(x => x.days === a.days && a.norm.length >= 3 && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
+      .filter(a => !(shown || []).some(x => a.norm.length >= 3 && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
     const kept = items.filter((a, i) => a.norm.length < 3 || !items.some((b, j) => j !== i && b.days === a.days && b.norm !== a.norm && b.norm.includes(a.norm)));
     const seen = new Set(), uniq = kept.filter(a => { const k = a.days + '|' + a.norm; if (seen.has(k)) return false; seen.add(k); return true; });
     const groups = [];
@@ -566,7 +573,7 @@
     (data.today || []).filter(e => !e.allDay).forEach(e => markTo(base, e.title, 0));
     if (lastHero && lastHero.e && lastHero.e.title) markTo(base, lastHero.e.title, lastHero.days != null ? lastHero.days : (lastHero.e.start ? Math.round((new Date(lastHero.e.start).setHours(0, 0, 0, 0) - day0) / 864e5) : 0));
     const cl = countdownClusters(data.countdowns, base);
-    const ringed = (title, days) => { const n = normLabel(title); return n.length >= 3 && days != null && cl.some(g => g.days === days && g.names.some(a => a.norm.length >= 3 && (a.norm.includes(n) || n.includes(a.norm)))); };
+    const ringed = (title, days) => { const n = normLabel(title); return n.length >= 3 && cl.some(g => g.names.some(a => a.norm.length >= 3 && (a.norm.includes(n) || n.includes(a.norm)))); };
     const tidy = s => String(s).replace(/\s*·\s*turns\s+\d+/i, '');
     const mk = (g, rank, o) => {
       if (o.mark && ringed(o.mark.title, o.mark.days)) return;
@@ -874,7 +881,7 @@
       const badge = stale ? '·' : isHome ? '🏠' : placeEmoji(x.place);
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
       const label = `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
-      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};font-size:30px">${FACE[key] || esc(p.label)}<span class="bd">${badge}</span></div>${when ? `<span class="since tn" style="display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 18px 0 12px;border-radius:24px;background:rgba(10,12,24,.88);font-size:22px;color:var(--cream)"><span style="font-size:28px;line-height:1">${arrowFor(dir)}</span>${when}</span>` : ''}</div>`;
+      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};font-size:26px">${FACE[key] || esc(p.label)}<span class="bd">${badge}</span></div>${when ? `<span class="since tn" style="display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px 0 10px;border-radius:20px;background:rgba(10,12,24,.88);font-size:20px;color:var(--cream)"><span style="font-size:22px;line-height:1">${arrowFor(dir)}</span>${when}</span>` : ''}</div>`;
     }).join(''));
     el.hidden = false;
   }
