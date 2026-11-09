@@ -235,7 +235,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261109k';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261109l';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -551,10 +551,12 @@
   }
 
   // ---------- Countdown clusters: no near-duplicates, tied dates stay together ----------
-  const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  // keep emoji in the key, so a countdown titled only with an emoji still matches itself
+  const keyOk = n => [...n].length >= 3 || /\p{Extended_Pictographic}/u.test(n);
+  const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^\p{L}\p{N}\p{Extended_Pictographic}\s]/gu, '').replace(/\s+/g, ' ').trim();
   function countdownClusters(list, shown) {
     const items = (list || []).map(c => ({ days: c.days, ...splitWho(c.label), norm: normLabel(c.label) }))
-      .filter(a => !(shown || []).some(x => a.norm.length >= 3 && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
+      .filter(a => !(shown || []).some(x => keyOk(a.norm) && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
     const kept = items.filter((a, i) => a.norm.length < 3 || !items.some((b, j) => j !== i && b.days === a.days && b.norm !== a.norm && b.norm.includes(a.norm)));
     const seen = new Set(), uniq = kept.filter(a => { const k = a.days + '|' + a.norm; if (seen.has(k)) return false; seen.add(k); return true; });
     const groups = [];
@@ -569,11 +571,11 @@
     const bdHero = !!(lastHero && lastHero.birthday);
     // countdown rings come first: a chip whose date a ring already counts down is skipped, so each fact appears once
     const day0 = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()).getTime(), base = [];
-    const markTo = (arr, title, days) => { const n = normLabel(title); if (n.length >= 3 && days != null) arr.push({ norm: n, days }); };
+    const markTo = (arr, title, days) => { const n = normLabel(title); if (keyOk(n) && days != null) arr.push({ norm: n, days }); };
     (data.today || []).filter(e => !e.allDay).forEach(e => markTo(base, e.title, 0));
     if (lastHero && lastHero.e && lastHero.e.title) markTo(base, lastHero.e.title, lastHero.days != null ? lastHero.days : (lastHero.e.start ? Math.round((new Date(lastHero.e.start).setHours(0, 0, 0, 0) - day0) / 864e5) : 0));
     const cl = countdownClusters(data.countdowns, base);
-    const ringed = (title, days) => { const n = normLabel(title); return n.length >= 3 && cl.some(g => g.names.some(a => a.norm.length >= 3 && (a.norm.includes(n) || n.includes(a.norm)))); };
+    const ringed = (title, days) => { const n = normLabel(title); return keyOk(n) && cl.some(g => g.names.some(a => keyOk(a.norm) && (a.norm.includes(n) || n.includes(a.norm)))); };
     const tidy = s => String(s).replace(/\s*·\s*turns\s+\d+/i, '');
     const mk = (g, rank, o) => {
       if (o.mark && ringed(o.mark.title, o.mark.days)) return;
