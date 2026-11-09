@@ -235,7 +235,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261109b';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261109c';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -863,10 +863,11 @@
       const moving = x.event === 'leave', atHome = !moving && /\bhome\b/i.test(x.place);
       const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99;
       const stale = moving && ageH > 12;                      // left somewhere long ago, never arrived: unknown
-      const badge = stale ? '·' : moving ? '🚗' : placeEmoji(x.place);
-      const since = !atHome && !stale && x.at ? `<span class="since tn">${fmtT(new Date(x.at))}</span>` : '';
+      const badge = stale ? '·' : placeEmoji(x.place);          // place icon; direction is in the words below
+      const when = x.at && !stale ? fmtT(new Date(x.at)) : '';
+      const line = stale || atHome ? '' : `${moving ? 'left' : 'at'} ${cut(x.place, 2)}${when ? ' · ' + when : ''}`;
       const label = `${x.who}: ${moving ? 'left' : 'at'} ${x.place}`;
-      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};color:${p.color}">${esc(p.label)}<span class="bd">${badge}</span></div>${since}</div>`;
+      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};color:${p.color}">${esc(p.label)}<span class="bd">${badge}</span></div>${line ? `<span class="since tn">${esc(line)}</span>` : ''}</div>`;
     }).join(''));
     el.hidden = false;
   }
