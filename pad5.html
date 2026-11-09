@@ -235,7 +235,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'pad5-20261109c';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'pad5-20261109d';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -852,6 +852,11 @@
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
   ];
   const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
+  // 24-hour time, and direction shown as a glyph: house with an arrow in (arriving home) or out (leaving home)
+  const hm24 = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const arrowPath = dir => dir === 'in' ? 'M22 12H15M18 9L15 12L18 15' : 'M15 12H22M19 9L22 12L19 15';
+  const homeGlyph = dir => `<svg class="ic" width="28" height="28" viewBox="0 0 24 24" stroke="#F3ECDF" aria-hidden="true"><path d="M1.5 11L7 6L12.5 11V19.5H1.5Z"/><path d="${arrowPath(dir)}"/></svg>`;
+  const dirTag = dir => `<span style="position:absolute;right:-6px;top:-6px;width:18px;height:18px;border-radius:9px;background:rgba(10,12,24,.92);display:flex;align-items:center;justify-content:center"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" stroke="#F3ECDF" stroke-width="2.6"><path d="${arrowPath(dir)}"/></svg></span>`;
   function renderFamily(nowMs) {
     const el = $('.js-fam'), list = (data?.presence || []).filter(x => x && x.who && x.place);
     if (!list.length) { el.hidden = true; set('.js-fam', ''); return; }
@@ -860,14 +865,13 @@
     set('.js-fam', list.map(x => {
       const me = String(x.who).toLowerCase() === ME_NAME.toLowerCase();
       const p = personStyle(me ? 'Me' : x.who) || { label: '?', color: '#E8E2D6' };
-      const moving = x.event === 'leave', atHome = !moving && /\bhome\b/i.test(x.place);
+      const isHome = /\bhome\b/i.test(x.place), moving = x.event === 'leave', dir = moving ? 'out' : 'in';
       const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99;
       const stale = moving && ageH > 12;                      // left somewhere long ago, never arrived: unknown
-      const badge = stale ? '·' : placeEmoji(x.place);          // place icon; direction is in the words below
-      const when = x.at && !stale ? fmtT(new Date(x.at)) : '';
-      const line = stale || atHome ? '' : `${moving ? 'left' : 'at'} ${cut(x.place, 2)}${when ? ' · ' + when : ''}`;
-      const label = `${x.who}: ${moving ? 'left' : 'at'} ${x.place}`;
-      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};color:${p.color}">${esc(p.label)}<span class="bd">${badge}</span></div>${line ? `<span class="since tn">${esc(line)}</span>` : ''}</div>`;
+      const badge = stale ? '·' : isHome ? homeGlyph(dir) : placeEmoji(x.place) + dirTag(dir);
+      const when = x.at && !stale ? hm24(new Date(x.at)) : '';
+      const label = `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
+      return `<div class="pp${stale ? ' stale' : ''}" title="${esc(label)}"><div class="av" style="background:${hexA(p.color, .24)};color:${p.color}">${esc(p.label)}<span class="bd">${badge}</span></div>${when ? `<span class="since tn">${when}</span>` : ''}</div>`;
     }).join(''));
     el.hidden = false;
   }
