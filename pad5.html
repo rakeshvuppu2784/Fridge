@@ -78,6 +78,8 @@
   .wo { display: flex; align-items: flex-start; gap: calc(var(--u)*1.2); padding: calc(var(--u)*1.4) calc(var(--u)*1.8); border-radius: calc(var(--u)*2); background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.14); font-size: calc(var(--u)*3.2); line-height: 1.25; color: var(--cream); white-space: normal; min-width: 0; }
   .wo .wt { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
   .wo:empty { display: none; }
+  .wo.ex { gap: calc(var(--u)*1.2); padding: 0; background: none; border: 0; align-items: center; }
+  .ex-t { display: block; flex: 0 1 calc(var(--u)*8); min-width: 0; height: auto; aspect-ratio: 1 / 1; border-radius: 50%; -webkit-user-drag: none; }
   .meals { display: flex; flex-direction: column; gap: calc(var(--u)*.5); min-width: 0; }
   .meals:empty { display: none; }
   .mrow { display: flex; align-items: center; gap: calc(var(--u)*1.4); height: calc(var(--u)*4.2); font-size: calc(var(--u)*3.6); min-width: 0; }
@@ -258,7 +260,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261109-wifework';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261111-extread';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -413,7 +415,7 @@
       tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: ['Mon · Parent-teacher meeting'], open: [] },
       todos: ['!! Pay internet bill'], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
-      message: 'Proud of you, champ!', pack: 'Hall ticket', meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, rice, beans fry', prep: 'Soak rajma tonight' }, tomorrow: null }, photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: 'Hack Squat + Chest/Back' },
+      message: 'Proud of you, champ!', pack: 'Hall ticket', meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, rice, beans fry', prep: 'Soak rajma tonight' }, tomorrow: null }, photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: qs.get('wo') ? 'Day ' + qs.get('wo') : 'Hack Squat + Chest/Back' },
       presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
     };
   }
@@ -603,6 +605,25 @@
     return groups.sort((a, b) => (a.pri - b.pri) || (a.days - b.days)).slice(0, 3);   // P1 first, then P2, then P3; at most three rings
   }
 
+  // ---------- Workout thumbnails: one round picture per exercise (img/ex/<Liftin exerciseID>.png), 4-5 per day, then the incline treadmill in place of the Zone 2 block that ends every day ----------
+  const EX_V = 2;   // bump when an image is replaced, so tablets fetch the new one
+  const DAY_EX = {
+    1: ['hack_squat', 'incline_dumbbell_press', 'machine_seated_row', 'standing_calf_raise', 'incline_treadmill'],
+    2: ['barbell_hip_thrust', 'lateral_raise_cable', 'incline_dumbbell_curl', 'rear_delt_reverse_fly', 'cable_core_pallof_press', 'incline_treadmill'],
+    3: ['leg_press', 'incline_dumbbell_press', 'machine_seated_row', 'lying_leg_curls', 'incline_treadmill'],   // the gym has no seated leg curl, so Liftin's Leg Curl is shown as the lying one
+    4: ['bulgarian_split_squat', 'lat_pulldown', 'lying_leg_curls', 'cable_overhead_triceps_extension', 'standing_calf_raise', 'incline_treadmill'],
+    5: ['romanian_deadlift_dumbbell', 'standing_calf_raise', 'pull_up_weighted', 'lateral_raise_cable', 'incline_treadmill'],
+  };
+  // which program day is it? "Day N" in the title wins; otherwise a keyword from the routine name
+  function workoutDay(t) {
+    t = String(t || ''); const m = /\bday\s*([1-5])\b/i.exec(t); if (m) return +m[1];
+    if (/hack squat/i.test(t)) return 1; if (/hip thrust|glutes/i.test(t)) return 2; if (/leg press/i.test(t)) return 3;
+    if (/\bbss\b|bulgarian|single[- ]leg/i.test(t)) return 4; if (/\brdl\b|hinge|romanian/i.test(t)) return 5;
+    return 0;
+  }
+  // an explicit list from the backend (w.ex, Liftin exerciseIDs) wins over the table, so the same code can go dynamic later
+  const workoutIds = w => w ? ((Array.isArray(w.ex) && w.ex.length ? w.ex : DAY_EX[workoutDay(w.title)]) || []) : [];
+
   // ---------- Agenda card: next meal, up to two reminder chips (+N), workout, countdown rings ----------
   function renderAgenda(nowD) {
     const chips = $('.js-chips'), wo = $('.js-wo'), tray = $('.js-tray');
@@ -651,9 +672,12 @@
     };
     chips.innerHTML = shown.map(chipHtml).join('') + (hid ? `<span class="chip more"><span class="ct">+${hid}</span></span>` : '');
 
-    // workout: one line
-    const w = data.workout;
-    wo.innerHTML = w && w.title ? `${svgIc('dumbbell', 31, 'var(--dim)')}<span class="wt">${esc(w.title)}</span>` : '';
+    // workout: the day's 4-5 exercise pictures (falls back to the one-line title when the day is unknown)
+    const w = data.workout, ids = workoutIds(w);
+    const woHtml = ids.length ? ids.map(id => `<img class="ex-t" src="img/ex/${String(id).replace(/[^\w-]/g, '')}.png?v=${EX_V}" alt="" draggable="false" onerror="this.remove()">`).join('')
+      : w && w.title ? `${svgIc('dumbbell', 31, 'var(--dim)')}<span class="wt">${esc(w.title)}</span>` : '';
+    wo.classList.toggle('ex', ids.length > 0);
+    if (wo.dataset.h !== woHtml || !wo.firstChild) { wo.dataset.h = woHtml; wo.innerHTML = woHtml; }   // rebuild only when it changed, so the pictures do not flicker every minute
 
     // countdown rings (last row, inside the card): gold at 3 days or fewer
     const R = 32;
