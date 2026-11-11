@@ -260,7 +260,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 5 * 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261111-dhtimg';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261111-dht2';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -606,7 +606,7 @@
   }
 
   // ---------- Workout thumbnails: one round picture per exercise (img/ex/<Liftin exerciseID>.png), 4-5 per day, then the incline treadmill in place of the Zone 2 block that ends every day ----------
-  const EX_V = 3;   // bump when an image is replaced, so tablets fetch the new one
+  const EX_V = 4;   // bump when an image is replaced, so tablets fetch the new one
   const DAY_EX = {
     1: ['hack_squat', 'incline_dumbbell_press', 'machine_seated_row', 'standing_calf_raise', 'incline_treadmill'],
     2: ['barbell_hip_thrust', 'lateral_raise_cable', 'incline_dumbbell_curl', 'rear_delt_reverse_fly', 'cable_core_pallof_press', 'incline_treadmill'],
