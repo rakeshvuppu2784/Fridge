@@ -260,7 +260,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261112-poll60';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261112-lefthome';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -950,13 +950,14 @@
       const isHome = /\bhome\b/i.test(x.place), moving = x.event === 'leave';
       const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99;
       const stale = moving && !isHome && ageH > 12;           // left somewhere (not home) long ago, never arrived: unknown
-      const away = key === 'sujatha' && (moving || !isHome);   // wife out of home: woman-at-laptop badge
-      const badge = stale ? '·' : away ? '👩🏽‍💻' : isHome ? '🏠' : placeEmoji(x.place);
+      const atHome = isHome && !moving;                         // 'left Home' means out, not home
+      const away = key === 'sujatha' && !atHome;               // wife out of home: woman-at-laptop badge
+      const badge = stale ? '·' : away ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
       const label = `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
-      const homeRing = isHome && !away ? `box-shadow:0 0 0 calc(var(--u)*.3) ${col};` : '';   // at home: a thin ring, no label
+      const homeRing = atHome ? `box-shadow:0 0 0 calc(var(--u)*.3) ${col};` : '';   // at home: a thin ring, no label
       const slot = FAMILY_SLOT[key], pos = slot ? `grid-row:${slot[0]};grid-column:${slot[1]};` : '';
-      return `<div class="pp${stale ? ' stale' : ''}" style="${pos}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${(!isHome || away) && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
+      return `<div class="pp${stale ? ' stale' : ''}" style="${pos}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${!atHome && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
     }).join(''));
     el.hidden = false;
   }
