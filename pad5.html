@@ -253,14 +253,14 @@
 (() => {
   // ---------- Settings ----------
   const LAT_DEFAULT = 17.465, LON_DEFAULT = 78.361;     // Kondapur, Hyderabad
-  const NIGHT_FROM = 22, NIGHT_TO = 6;                   // dim / pause photo extras between these hours
+  const NIGHT_FROM = 24, NIGHT_TO = 6;                   // night mode 00:00-06:00 (24 = midnight): dim / pause photo extras between these hours
   const DAY_LEVEL = -1, NIGHT_LEVEL = 25, NIGHT_CAP = 60; // Fully brightness: 0-255, -1 = device default
   const F = (typeof window.fully !== 'undefined') ? window.fully : null;
   const RAIN_NUDGE = 60, HOT_NUDGE = 38, AQI_NUDGE = 200, UV_NUDGE = 8, SOON_MIN = 60, CD_ALERT_DAYS = 3, CD_MAX_DAYS = 60;
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261112-lefthome';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261113-midnight';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -550,7 +550,7 @@
     set('.js-hero', heroHtml({ emoji: emojiFor(e.title), color: personColor(e.who, e.color), title: e.title, meta: parts.join('') }));
     fitTitle(); return h;
   }
-  // night (22:00-06:00): the first event of the next day, smaller
+  // night (00:00-06:00): the first event of the day, smaller
   function renderNightHero(nowD) {
     const nowMs = nowD.getTime(), late = nowD.getHours() >= NIGHT_FROM;
     const pool = late ? (data?.tomorrow || []).filter(x => x.time !== 'Gym') : (data?.today || []).filter(x => x.allDay || x.end > nowMs);   // 'Gym' rows are covered by the workout line
