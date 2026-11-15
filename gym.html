@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gym done</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gym done">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1115">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #0f1115; color: #f2f3f5;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+  main { min-height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 14px;
+    padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  p.sub { margin: 0 0 6px; color: #9aa0aa; font-size: 15px; }
+  button { appearance: none; border: 0; border-radius: 18px; padding: 20px 18px; font-size: 19px; font-weight: 600;
+    color: #f2f3f5; background: #1d212a; text-align: left; display: flex; justify-content: space-between; align-items: center;
+    transition: transform .08s, background .15s; }
+  button small { font-size: 13px; font-weight: 500; color: #9aa0aa; }
+  button:active { transform: scale(.98); background: #262b36; }
+  button[disabled] { opacity: .5; }
+  #msg { min-height: 24px; font-size: 16px; text-align: center; margin-top: 6px; }
+  #msg.ok { color: #7bd88f; } #msg.err { color: #ff8a80; }
+  #last { text-align: center; color: #9aa0aa; font-size: 13px; }
+  #setup { display: none; text-align: center; color: #9aa0aa; font-size: 15px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<main>
+  <div id="app">
+    <h1>Gym done</h1>
+    <p class="sub">Which session did you finish?</p>
+    <div id="list" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div id="msg" role="status"></div>
+    <div id="last"></div>
+  </div>
+  <div id="setup">Not set up on this phone yet.<br>Open the one-time setup link again.</div>
+</main>
+<script>
+(function () {
+  // The sessions, in rotation order. Tapping one sets the dashboard's NEXT workout to the one after it.
+  var SESSIONS = [
+    { name: 'Hack Squat',   day: 1, title: 'Hack Squat (Day 1)' },
+    { name: 'Hip Thrust',   day: 2, title: 'Hip Thrust (Day 2)' },
+    { name: 'Leg Press',    day: 3, title: 'Leg Press (Day 3)' },
+    { name: 'BSS + Hams/Arms', day: 4, title: 'BSS + Hamstrings/Arms (Day 4)' },
+    { name: 'RDL',          day: 5, title: 'RDL (Day 5)' }
+  ];
+  var LS = 'gym-config';
+  function load() { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } }
+  function save(c) { try { localStorage.setItem(LS, JSON.stringify(c)); } catch (e) {} }
+
+  // One-time setup: the link carries the endpoint and the write-only key in the #fragment (never sent to a server,
+  // never committed). Store them in this browser, then strip the fragment from the address bar.
+  var cfg = load();
+  if (location.hash.length > 1) {
+    var h = new URLSearchParams(location.hash.slice(1));
+    if (h.get('a') && h.get('k')) { cfg = { a: h.get('a'), k: h.get('k') }; save(cfg); }
+    history.replaceState(null, '', location.pathname);
+  }
+  if (!cfg.a || !cfg.k) {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('setup').style.display = 'block';
+    return;
+  }
+
+  var msg = document.getElementById('msg'), last = document.getElementById('last'), list = document.getElementById('list');
+  function nextOf(i) { return SESSIONS[(i + 1) % SESSIONS.length]; }
+  function showLast() {
+    try {
+      var l = JSON.parse(localStorage.getItem('gym-last') || 'null');
+      if (l) last.textContent = 'Last logged: ' + l.name + ' · ' + new Date(l.at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {}
+  }
+  function setBusy(b) { Array.prototype.forEach.call(list.children, function (x) { x.disabled = b; }); }
+
+  SESSIONS.forEach(function (s, i) {
+    var b = document.createElement('button');
+    b.innerHTML = '<span>' + s.name + '</span><small>next: ' + nextOf(i).name + '</small>';
+    b.addEventListener('click', function () { log(i); });
+    list.appendChild(b);
+  });
+
+  function log(i) {
+    var n = nextOf(i);
+    msg.className = ''; msg.textContent = 'Saving…'; setBusy(true);
+    var url = cfg.a + '?action=workout&pkey=' + encodeURIComponent(cfg.k) + '&title=' + encodeURIComponent(n.title);
+    fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.ok) {
+        msg.className = 'ok'; msg.textContent = '✓ Logged. Dashboard next: ' + n.name;
+        try { localStorage.setItem('gym-last', JSON.stringify({ name: SESSIONS[i].name, at: Date.now() })); } catch (e) {}
+        showLast();
+        if (navigator.vibrate) navigator.vibrate(30);
+      } else {
+        msg.className = 'err'; msg.textContent = (j && j.error === 'unauthorized') ? 'Key rejected. Open the setup link again.' : 'Failed: ' + ((j && j.error) || 'unknown');
+      }
+    }).catch(function () {
+      msg.className = 'err'; msg.textContent = 'No connection. Try again.';
+    }).then(function () { setBusy(false); });
+  }
+  showLast();
+})();
+</script>
+</body>
+</html>
