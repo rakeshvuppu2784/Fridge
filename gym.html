@@ -40,7 +40,7 @@
     <div id="msg" role="status"></div>
     <div id="last"></div>
   </div>
-  <div id="setup">Not set up on this phone yet.<br>Open the one-time setup link again.</div>
+  <div id="setup">Not set up on this phone yet.<br>Open the one-time setup link in Safari, then Add to Home Screen from there.</div>
 </main>
 <script>
 (function () {
@@ -57,12 +57,12 @@
   function save(c) { try { localStorage.setItem(LS, JSON.stringify(c)); } catch (e) {} }
 
   // One-time setup: the link carries the endpoint and the write-only key in the #fragment (never sent to a server,
-  // never committed). Store them in this browser, then strip the fragment from the address bar.
+  // never committed). The fragment is deliberately KEPT in the address bar: an iPhone Home Screen icon has its own
+  // storage, separate from Safari, so "Add to Home Screen" must save a URL that still carries the setup.
   var cfg = load();
   if (location.hash.length > 1) {
     var h = new URLSearchParams(location.hash.slice(1));
     if (h.get('a') && h.get('k')) { cfg = { a: h.get('a'), k: h.get('k') }; save(cfg); }
-    history.replaceState(null, '', location.pathname);
   }
   if (!cfg.a || !cfg.k) {
     document.getElementById('app').style.display = 'none';
