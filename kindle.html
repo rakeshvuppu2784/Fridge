@@ -69,6 +69,23 @@
 
   .foot { position: absolute; left: 28px; right: 28px; bottom: 8px; height: 20px; font-size: 15px; font-weight: 600; color: #555; display: flex; justify-content: space-between; }
   .err { color: #000; font-weight: 800; }
+
+  /* ---- landscape (?land=1): 800x600, rendered sideways and rotated by render.py ---- */
+  body.land, html.land { width: 800px; height: 600px; }
+  body.land .top { left: 26px; right: 26px; top: 16px; height: 100px; }
+  body.land .date { font-size: 58px; }
+  body.land .dow { font-size: 26px; }
+  body.land .wx .t { font-size: 58px; }
+  body.land .hero { left: 18px; right: auto; width: 470px; top: 128px; height: 120px; padding: 14px 20px; }
+  body.land .hero .h { font-size: 34px; }
+  body.land .hero .em { font-size: 50px; }
+  body.land .ag { left: 24px; right: auto; width: 466px; top: 262px; }
+  body.land .ag .r { font-size: 23px; height: 44px; }
+  body.land .ag .tg { width: 78px; }
+  body.land .ag .msg { padding-top: 40px; font-size: 28px; }
+  body.land .fam { left: auto; right: 18px; top: 118px; width: 280px; height: 220px; }
+  body.land .rings { right: 18px; top: 344px; width: 280px; height: 140px; justify-content: center; }
+  body.land .wo { left: 18px; right: 18px; bottom: 30px; height: 64px; }
 </style>
 </head>
 <body>
@@ -85,7 +102,8 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261118a';
+  const BUILD = 'kindle-20261118b';
+  if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
   const cfg = { api: qs.get('api') || '', key: qs.get('key') || '' };

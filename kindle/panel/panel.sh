@@ -1,6 +1,6 @@
 #!/bin/sh
 # Kindle desk panel: wake every 30 min (06:00-24:00 IST), download the dashboard PNG, show it, suspend to RAM.
-# Runs on a jailbroken Kindle (tested target: Kindle 8th gen, firmware 5.16.2.1.1). Started from KUAL.
+# Runs on a jailbroken Kindle (Kindle 8th gen, firmware 5.16.2.1.1, WinterBreak2). Started by the "Desk panel - start" scriptlet in documents/
 # To leave panel mode: hold the power button ~40 s until the Kindle restarts (the panel does not auto-start).
 # Settings (the image URL) live in local.sh next to this file, which is NOT in the public repo.
 
@@ -21,8 +21,12 @@ trim_log() { [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 200000 ] && tail -n 400 
 
 init() {
   log "panel start (pid $$)"
-  stop framework >/dev/null 2>&1 || /etc/init.d/framework stop >/dev/null 2>&1   # stop the reader UI so it doesn't draw over us
-  initctl stop webreader >/dev/null 2>&1
+  # stop the whole Kindle UI (lab126_gui = window manager + pillow status bar + reader), so nothing draws over the panel
+  if stop lab126_gui >/dev/null 2>&1; then log "stopped lab126_gui"
+  else stop framework >/dev/null 2>&1 || /etc/init.d/framework stop >/dev/null 2>&1; log "lab126_gui stop failed, stopped framework only"
+       lipc-set-prop com.lab126.pillow disableEnablePillow disable >/dev/null 2>&1; fi
+  sleep 3
+  eips -c >/dev/null 2>&1
   lipc-set-prop com.lab126.powerd preventScreenSaver 1 >/dev/null 2>&1
   echo powersave > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null
   n=0; fails=0

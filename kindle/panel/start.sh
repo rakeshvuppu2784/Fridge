@@ -1,6 +1,7 @@
 #!/bin/sh
-# KUAL entry point: run the panel loop in the background, detached from KUAL
+# Entry point (from the "Desk panel - start" scriptlet): run the panel loop detached in the background
 DIR="$(cd "$(dirname "$0")" && pwd)"
-[ -f "$DIR/local.sh" ] || { eips 1 35 " kindle-panel: local.sh missing " ; exit 1; }
+[ -f "$DIR/local.sh" ] || { eips 1 35 " Desk panel: local.sh missing " ; exit 1; }
 pkill -f "$DIR/panel.sh" 2>/dev/null
-nohup sh "$DIR/panel.sh" >/dev/null 2>&1 &
+if command -v setsid >/dev/null 2>&1; then setsid nohup sh "$DIR/panel.sh" >/dev/null 2>&1 < /dev/null &
+else nohup sh "$DIR/panel.sh" >/dev/null 2>&1 < /dev/null & fi
