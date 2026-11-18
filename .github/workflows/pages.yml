@@ -1,0 +1,76 @@
+# Publishes the whole site to GitHub Pages, plus the Kindle panel image.
+# Runs on every push to main (so pad5/gym updates go live as before) and every 15 min from 05:37 to 00:22 IST.
+# The Kindle image goes to k/<KINDLE_TOKEN>.png, which exists only in the deployed site, never in the repo.
+# Secrets used: DASH_API (Apps Script exec URL), DASH_KEY (dashboard key), KINDLE_TOKEN (random file name).
+name: Publish site + Kindle image
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '7,22,37,52 0-18 * * *'   # UTC; = :37/:52/:07/:22 IST, 05:37-00:22 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write          # to keep the schedule from being auto-disabled after 60 quiet days
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install renderer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-color-emoji fonts-inter imagemagick >/dev/null
+          pip install -q playwright==1.48.0
+          python -m playwright install --with-deps chromium >/dev/null
+
+      - name: Build site
+        run: |
+          mkdir -p _site
+          rsync -a --exclude '.git' --exclude '.github' --exclude '_site' --exclude kindle/panel/local.sh --exclude kindle/.dashkey ./ _site/
+
+      - name: Render Kindle image
+        env:
+          DASH_API: ${{ secrets.DASH_API }}
+          DASH_KEY: ${{ secrets.DASH_KEY }}
+          KINDLE_TOKEN: ${{ secrets.KINDLE_TOKEN }}
+        run: |
+          if [ -z "$KINDLE_TOKEN" ]; then echo "KINDLE_TOKEN not set, skipping"; exit 0; fi
+          Q="api=$(python -c 'import urllib.parse,os;print(urllib.parse.quote(os.environ["DASH_API"],safe=""))')&key=$(python -c 'import urllib.parse,os;print(urllib.parse.quote(os.environ["DASH_KEY"],safe=""))')"
+          mkdir -p _site/k
+          for i in 1 2 3; do
+            python kindle/render.py . "_site/k/$KINDLE_TOKEN.png" "$Q" && break
+            echo "render attempt $i failed"; sleep 20
+          done
+          rm -f _site/k/*.rgb.png
+          ls -la _site/k | sed "s/$KINDLE_TOKEN/<token>/"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Keep the schedule alive
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/pages.yml/enable" || true

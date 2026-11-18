@@ -1,0 +1,2 @@
+# copy to panel/local.sh on the Kindle (never commit the real one)
+PANEL_URL="https://rakeshvuppu2784.github.io/Fridge/k/<token>.png"

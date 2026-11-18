@@ -1,1 +1,6 @@
 .DS_Store
+kindle/panel/local.sh
+kindle/.dashkey
+kindle/preview.png
+kindle/panel/*.log
+_site/

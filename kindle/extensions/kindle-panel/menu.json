@@ -1,0 +1,6 @@
+{
+  "items": [
+    {"name": "Desk panel: start (hold power 40 s to exit)", "action": "/mnt/us/panel/start.sh"},
+    {"name": "Desk panel: test download once", "action": "/mnt/us/panel/once.sh"}
+  ]
+}

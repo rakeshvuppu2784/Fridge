@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=600, height=800, initial-scale=1">
+<title>Kindle panel</title>
+<!--
+  Kindle e-ink panel (Kindle 8th gen, 600x800, 16 greys).
+  Not opened on the Kindle itself: a GitHub Actions job loads this page in headless Chrome,
+  screenshots it, converts it to a greyscale PNG and publishes it; the jailbroken Kindle downloads that PNG.
+  Preview in a desktop browser at 600x800: kindle.html?demo=1&fam=1  (add &at=16:10 to fake the time).
+  Live data: kindle.html?api=<exec URL>&key=<dashboard key>   (keys are never stored in this repo)
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 600px; height: 800px; background: #fff; color: #000; overflow: hidden; }
+  body { font-family: 'Inter', 'Noto Sans', 'DejaVu Sans', sans-serif; -webkit-font-smoothing: antialiased; position: relative; }
+  .tn { font-variant-numeric: tabular-nums; }
+  .em { font-family: 'Noto Color Emoji', 'Apple Color Emoji', sans-serif; line-height: 1; }
+
+  /* 1. date + weather */
+  .top { position: absolute; left: 28px; right: 28px; top: 22px; height: 120px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .dow { font-size: 30px; font-weight: 600; letter-spacing: .5px; }
+  .date { font-size: 64px; font-weight: 800; line-height: 1; margin-top: 4px; letter-spacing: -1.5px; }
+  .wx { text-align: right; }
+  .wx .t { display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 64px; font-weight: 800; line-height: 1; letter-spacing: -1.5px; }
+  .wx .t .em { font-size: 48px; }
+  .wx .s { font-size: 22px; font-weight: 600; margin-top: 10px; color: #222; }
+  .wx .s b { background: #000; color: #fff; padding: 1px 8px; border-radius: 6px; font-weight: 700; }
+
+  /* 2. hero: the one thing that matters next (black card) */
+  .hero { position: absolute; left: 20px; right: 20px; top: 160px; height: 132px; background: #000; color: #fff; border-radius: 18px; padding: 18px 24px; display: flex; align-items: center; gap: 18px; }
+  .hero .em { font-size: 58px; }
+  .hero .w { min-width: 0; flex: 1; }
+  .hero .m { font-size: 24px; font-weight: 600; opacity: .85; }
+  .hero .h { font-size: 40px; font-weight: 800; line-height: 1.1; letter-spacing: -.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* 3. agenda: up to 4 lines */
+  .ag { position: absolute; left: 28px; right: 28px; top: 312px; }
+  .ag .r { display: flex; align-items: center; gap: 14px; height: 46px; border-bottom: 2px solid #ccc; font-size: 26px; font-weight: 600; }
+  .ag .r:last-child { border-bottom: 0; }
+  .ag .tm { width: 92px; flex-shrink: 0; font-weight: 800; font-size: 24px; }
+  .ag .tg { width: 92px; flex-shrink: 0; font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: 1px; color: #444; }
+  .ag .em { font-size: 26px; width: 30px; text-align: center; }
+  .ag .msg { font-size: 30px; font-weight: 600; font-style: italic; text-align: center; padding-top: 50px; color: #333; }
+  .ag .tx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+  /* 4. bottom band: family 2x2 (left), countdown rings (right), workout strip (bottom) */
+  .fam { position: absolute; left: 22px; top: 504px; width: 268px; height: 194px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px 10px; }
+  .pp { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .av { position: relative; width: 62px; height: 62px; border-radius: 50%; background: #e6e6e6; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; }
+  .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; filter: grayscale(1) contrast(1.15); }
+  .av.home { box-shadow: 0 0 0 4px #000; }
+  .av .bd { position: absolute; right: -12px; bottom: -6px; width: 32px; height: 32px; border-radius: 50%; background: #fff; border: 2px solid #000; display: flex; align-items: center; justify-content: center; font-size: 19px; }
+  .pp .when { font-size: 19px; font-weight: 800; margin-top: 5px; height: 20px; line-height: 20px; }
+  .pp.stale { opacity: .45; }
+
+  .rings { position: absolute; right: 18px; top: 504px; width: 280px; height: 194px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+  .ring { width: 88px; display: flex; flex-direction: column; align-items: center; }
+  .rg { position: relative; width: 84px; height: 84px; }
+  .rg svg { width: 84px; height: 84px; }
+  .rn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; }
+  .rn.sm { font-size: 18px; }
+  .rl { font-size: 18px; font-weight: 700; margin-top: 6px; max-width: 88px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+
+  .wo { position: absolute; left: 20px; right: 20px; bottom: 30px; height: 62px; display: flex; align-items: center; justify-content: center; gap: 16px; border-top: 2px solid #000; padding-top: 8px; }
+  .wo img { width: 54px; height: 54px; border-radius: 50%; filter: grayscale(1) contrast(1.2); background: #eee; }
+  .wo .wt { font-size: 24px; font-weight: 700; }
+
+  .foot { position: absolute; left: 28px; right: 28px; bottom: 8px; height: 20px; font-size: 15px; font-weight: 600; color: #555; display: flex; justify-content: space-between; }
+  .err { color: #000; font-weight: 800; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div><div class="dow js-dow"></div><div class="date js-date"></div></div>
+    <div class="wx js-wx"></div>
+  </div>
+  <div class="hero js-hero"></div>
+  <div class="ag js-ag"></div>
+  <div class="fam js-fam"></div>
+  <div class="rings js-rings"></div>
+  <div class="wo js-wo"></div>
+  <div class="foot"><span class="js-note"></span><span class="tn js-upd"></span></div>
+
+<script>
+(function () {
+  const BUILD = 'kindle-20261118a';
+  const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
+  const qs = new URLSearchParams(location.search);
+  const cfg = { api: qs.get('api') || '', key: qs.get('key') || '' };
+  const DEMO = qs.get('demo') === '1' || !cfg.api || !cfg.key;
+  const AT = /^(\d{1,2}):(\d{2})$/.exec(qs.get('at') || '');
+  const clockNow = () => { const d = new Date(); if (AT) d.setHours(+AT[1], +AT[2], 0, 0); return d; };
+  const $ = s => document.querySelector(s);
+  const set = (s, html) => { const el = $(s); if (el) el.innerHTML = html; };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---- shared logic copied from pad5.html (priority markers, countdown windows and clusters, emoji map, workout table, place emoji) ----
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const hm = d => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const ampm = d => `${hm(d)} ${d.getHours() < 12 ? 'am' : 'pm'}`;
+  const hoursOf = d => d.getHours() + d.getMinutes() / 60;
+  const fmtH = h => { const hh = Math.floor(h), mm = Math.round((h - hh) * 60); const d = new Date(2000, 0, 1, mm === 60 ? hh + 1 : hh, mm === 60 ? 0 : mm); return ampm(d); };
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+
+  // ---------- Priority markers: "!!" = P1, "!" = P2, no marker = P3 (marker at the start or end of a title) ----------
+  const prioOf = s => { const t = String(s || '').trim(); if (/^!!|!!$/.test(t)) return 1; if (/^!|!$/.test(t)) return 2; return 3; };
+  const stripPrio = s => String(s || '').trim().replace(/^!{1,2}\s*/, '').replace(/\s*!{1,2}$/, '').trim();
+  // how far ahead each level shows: P1 30 days, P2 10 days, P3 5 days
+  const CD_WINDOW = { 1: 30, 2: 10, 3: 5 };
+  const cdShow = c => c.days >= 0 && c.days <= (CD_WINDOW[c.pri ?? 3] ?? 5);
+  function normalize(d) {
+    if (!d) return d;
+    const ev = e => ({ ...e, pri: prioOf(e.title), title: stripPrio(e.title) });
+    return {
+      ...d,
+      today: (d.today || []).map(ev),
+      tomorrow: (d.tomorrow || []).map(ev),
+      countdowns: (d.countdowns || []).map(c => ({ ...c, pri: prioOf(c.label), label: stripPrio(c.label) })),
+    };
+  }
+  const PALETTE = ['#9CC4FF', '#A6E0C6', '#D7B4F0', '#F5A08F', '#E8D36B', '#8FD0E0'];
+  function personStyle(who, fallback) {
+    const w = String(who || '').trim();
+    if (!w) return null;
+    if (/^me$/i.test(w)) return { label: 'Me', color: '#F2B47A', name: 'Me' };
+    if (/^(all|family)$/i.test(w)) return { label: 'All', color: '#E8E2D6', name: 'Everyone' };
+    if (/^kids$/i.test(w)) return { label: 'K', color: fallback || '#9CC4FF', name: 'Kids' };
+    let h = 0; for (const ch of w.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return { label: w[0].toUpperCase(), color: PALETTE[h % PALETTE.length], name: w };
+  }
+  const personColor = (who, fb) => (personStyle(who, fb) || {}).color || fb || '#E8E2D6';
+  function splitWho(label) {
+    const m = /^\s*([^·]{1,14}?)\s*·\s+(.+)$/.exec(String(label || ''));
+    return m ? { who: m[1].trim(), title: m[2].trim() } : { who: '', title: String(label || '') };
+  }
+  const EMOJI_MAP = [
+    [/\b(blood|doctor|dentist|clinic|hospital|vaccin)/i, '🩺'],
+    [/\b(birthday|bday)/i, '🎂'],
+    [/\b(diwali|deepavali)/i, '🪔'],
+    [/\bholi\b/i, '🎨'],
+    [/\bchristmas/i, '🎄'],
+    [/\b(sankranti|pongal)/i, '🪁'],
+    [/\b(exam(?!ple)|test|nse|olympiad|quiz|jee)/i, '📝'],
+    [/\b(tuition|class|lesson)/i, '📚'],
+    [/\b(school|pta)|parent[- ]teacher|\bbus\b/i, '🎒'],
+    [/\b(piano|music|dance)/i, '🎵'],
+    [/\b(dinner|lunch|breakfast|brunch)/i, '🍽️'],
+    [/\b(movie|film)/i, '🎬'],
+    [/\b(flight|trip|travel|airport)/i, '✈️'],
+    [/\b(sabbatical|vacation|leave|holiday)/i, '🌴'],
+    [/\b(meeting|review|call)/i, '💼'],
+    [/\b(pay(ment)?|bills?|billing|fees?)\b/i, '💳'],
+    [/\bpack/i, '🧳'],
+    [/\b(gym|workout)/i, '🏋️'],
+    [/\b(buy|shop)/i, '🛒'],
+  ];
+  const emojiFor = t => { const s = String(t || ''); for (const [re, e] of EMOJI_MAP) if (re.test(s)) return e; return ''; };
+  const wxEmoji = (code, day = 1) => code == null ? '⛅' : code <= 1 ? (day ? '☀️' : '🌙') : code <= 3 ? '⛅' : (code === 45 || code === 48) ? '🌫️' :
+    ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) ? '🌧️' : code >= 95 ? '⛈️' : '⛅';
+  const fmtT = d => { const h = d.getHours() % 12 || 12, m = d.getMinutes(); return `${h}${m ? ':' + String(m).padStart(2, '0') : ''} ${d.getHours() < 12 ? 'am' : 'pm'}`; };
+  const cut = (s, n = 4) => String(s).trim().split(/\s+/).slice(0, n).join(' ');
+  const dayAbbr = d => DAYS[d.getDay()].slice(0, 3);
+  const ALL3 = ['#F2B47A', '#9CC4FF', '#A6E0C6'];
+  const BP = {
+    pm25: [[0, 30, 0, 50], [31, 60, 51, 100], [61, 90, 101, 200], [91, 120, 201, 300], [121, 250, 301, 400], [251, 500, 401, 500]],
+    pm10: [[0, 50, 0, 50], [51, 100, 51, 100], [101, 250, 101, 200], [251, 350, 201, 300], [351, 430, 301, 400], [431, 600, 401, 500]],
+  };
+  function subIndex(c, table) {
+    if (c == null || isNaN(c)) return null;
+    const x = Math.round(c);
+    for (const [lo, hi, ilo, ihi] of table) if (x <= hi) return Math.round(ilo + (ihi - ilo) * (Math.max(x, lo) - lo) / (hi - lo));
+    return 500;
+  }
+  // keep emoji in the key, so a countdown titled only with an emoji still matches itself
+  const keyOk = n => [...n].length >= 3 || /\p{Extended_Pictographic}/u.test(n);
+  const normLabel = s => splitWho(s).title.toLowerCase().replace(/[^\p{L}\p{N}\p{Extended_Pictographic}\s]/gu, '').replace(/\s+/g, ' ').trim();
+  function countdownClusters(list, shown) {
+    const items = (list || []).filter(cdShow).map(c => ({ days: c.days, pri: c.pri ?? 3, ...splitWho(c.label), norm: normLabel(c.label) }))
+      .filter(a => !(shown || []).some(x => keyOk(a.norm) && (a.norm.includes(x.norm) || x.norm.includes(a.norm))));
+    const kept = items.filter((a, i) => a.norm.length < 3 || !items.some((b, j) => j !== i && b.days === a.days && b.norm !== a.norm && b.norm.includes(a.norm)));
+    const seen = new Set(), uniq = kept.filter(a => { const k = a.days + '|' + a.norm; if (seen.has(k)) return false; seen.add(k); return true; });
+    const groups = [];
+    uniq.forEach(a => { let g = groups.find(x => x.days === a.days); if (!g) groups.push(g = { days: a.days, names: [], pri: a.pri }); g.pri = Math.min(g.pri, a.pri); g.names.push(a); });
+    return groups.sort((a, b) => (a.pri - b.pri) || (a.days - b.days)).slice(0, 3);   // P1 first, then P2, then P3; at most three rings
+  }
+
+  // ---------- Workout thumbnails: one round picture per exercise (img/ex/<Liftin exerciseID>.png), 4-5 per day, then the incline treadmill in place of the Zone 2 block that ends every day ----------
+  const EX_V = 4;   // bump when an image is replaced, so tablets fetch the new one
+  const DAY_EX = {
+    1: ['hack_squat', 'incline_dumbbell_press', 'machine_seated_row', 'standing_calf_raise', 'incline_treadmill'],
+    2: ['barbell_hip_thrust', 'lateral_raise_cable', 'incline_dumbbell_curl', 'rear_delt_reverse_fly', 'cable_core_pallof_press', 'incline_treadmill'],
+    3: ['leg_press', 'incline_dumbbell_press', 'machine_seated_row', 'lying_leg_curls', 'incline_treadmill'],   // the gym has no seated leg curl, so Liftin's Leg Curl is shown as the lying one
+    4: ['bulgarian_split_squat', 'lat_pulldown', 'lying_leg_curls', 'cable_overhead_triceps_extension', 'standing_calf_raise', 'incline_treadmill'],
+    5: ['romanian_deadlift_dumbbell', 'standing_calf_raise', 'pull_up_weighted', 'lateral_raise_cable', 'incline_treadmill'],
+  };
+  // which program day is it? "Day N" in the title wins; otherwise a keyword from the routine name
+  function workoutDay(t) {
+    t = String(t || ''); const m = /\bday\s*([1-5])\b/i.exec(t); if (m) return +m[1];
+    if (/hack squat/i.test(t)) return 1; if (/hip thrust|glutes/i.test(t)) return 2; if (/leg press/i.test(t)) return 3;
+    if (/\bbss\b|bulgarian|single[- ]leg/i.test(t)) return 4; if (/\brdl\b|hinge|romanian/i.test(t)) return 5;
+    return 0;
+  }
+  // an explicit list from the backend (w.ex, Liftin exerciseIDs) wins over the table, so the same code can go dynamic later
+  const workoutIds = w => w ? ((Array.isArray(w.ex) && w.ex.length ? w.ex : DAY_EX[workoutDay(w.title)]) || []) : [];
+
+  const ME_NAME = 'Rakesh';                                   // shown as 'Me', matching the calendar chips
+  // fixed 2x2 slots [row, col]: Rakesh and Sujatha on top, Rhea and Lakshita below; never reordered by arrival time
+  const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
+  const PLACE_MAP = [
+    [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
+    [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
+    [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
+  ];
+  const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
+  // 24-hour time
+
+  const CD_ALERT_DAYS = 3;
+
+  const hm24 = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+
+  // ---- sample data (?demo=1, &fam=1 adds family presence) ----
+  function sample() {
+    const base = clockNow(); base.setHours(0, 0, 0, 0);
+    const ev = (title, h, m, mins, who, off = 0) => { const s = base.getTime() + off * 864e5 + (h * 60 + m) * 60e3; return { title, allDay: false, start: s, end: s + mins * 60e3, who }; };
+    return {
+      today: [ev('School bus', 8, 0, 30, 'Rhea'), ev('Client review', 10, 30, 60, 'Me'), ev('Piano', 16, 30, 60, 'Rhea'), ev('Diwali dinner', 19, 30, 90, 'All'), { title: '!! Pay internet bill', allDay: true, start: base.getTime(), end: base.getTime() + 864e5, who: 'Me' }],
+      tomorrow: [ev('Weekly test', 7, 0, 60, 'Rhea', 1)],
+      tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: [], open: [] }, todos: [], shopping: ['Curd', 'Bananas'],
+      countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 9 }, { label: 'Lakshita · Olympiad', days: 4 }],
+      workout: { title: 'Hack Squat (Day 1)' },
+      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'Home', event: 'leave', at: clockNow().getTime() - 20 * 60e3 }] : [],
+    };
+  }
+  const sampleWx = () => ({ temp: 29, code: 1, day: 1, hi: 31, lo: 18, rain: 10, aqi: 132 });
+
+  async function loadData() {
+    if (DEMO) return normalize(sample());
+    const r = await fetch(`${cfg.api}?key=${encodeURIComponent(cfg.key)}`, { cache: 'no-store' });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    return normalize(j);
+  }
+  async function loadWeather() {
+    if (DEMO) return sampleWx();
+    const out = {};
+    try {
+      const f = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=1`).then(r => r.json());
+      Object.assign(out, { temp: Math.round(f.current.temperature_2m), code: f.current.weather_code, day: f.current.is_day, hi: Math.round(f.daily.temperature_2m_max[0]), lo: Math.round(f.daily.temperature_2m_min[0]), rain: f.daily.precipitation_probability_max[0] ?? 0 });
+    } catch (e) {}
+    try {
+      const a = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}&hourly=pm2_5,pm10&past_days=1&forecast_days=1&timezone=Asia%2FKolkata`).then(r => r.json());
+      const now = new Date();
+      const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
+      const idx = a.hourly.time.map((t, i) => [t, i]).filter(([t]) => t <= nowKey).slice(-24).map(([, i]) => i);
+      const avg = arr => { const v = idx.map(i => arr[i]).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+      const vals = [subIndex(avg(a.hourly.pm2_5), BP.pm25), subIndex(avg(a.hourly.pm10), BP.pm10)].filter(x => x != null);
+      out.aqi = vals.length ? Math.max(...vals) : null;
+    } catch (e) {}
+    return out;
+  }
+
+  const t12 = ms => { const d = new Date(ms); const h = d.getHours() % 12 || 12, m = d.getMinutes(); return `${h}${m ? ':' + String(m).padStart(2, '0') : ''}${d.getHours() < 12 ? 'am' : 'pm'}`; };
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function render(data, wx) {
+    const now = clockNow(), nowMs = now.getTime();
+    set('.js-dow', DAYS[now.getDay()]);
+    set('.js-date', `${now.getDate()} ${MON[now.getMonth()]}`);
+
+    // weather: temperature, then only what matters (rain chance >= 40 %, AQI)
+    if (wx && wx.temp != null) {
+      const bits = [`${wx.hi}° / ${wx.lo}°`];
+      if (wx.rain >= 40) bits.push(`☔ ${wx.rain}%`);
+      if (wx.aqi != null) bits.push(wx.aqi > 100 ? `<b>AQI ${wx.aqi}</b>` : `AQI ${wx.aqi}`);
+      set('.js-wx', `<div class="t"><span class="em">${wxEmoji(wx.code, wx.day)}</span><span class="tn">${wx.temp}°</span></div><div class="s tn">${bits.join(' · ')}</div>`);
+    }
+
+    // hero: happening now, else the next timed event today, else tomorrow's first, else the top countdown
+    const timed = (data.today || []).filter(e => !e.allDay);
+    const live = timed.find(e => e.start <= nowMs && e.end > nowMs), nxt = timed.find(e => e.start > nowMs);
+    let hero = null;
+    if (live) hero = { e: live, meta: `Now · till ${t12(live.end)}` };
+    else if (nxt) { const mins = Math.round((nxt.start - nowMs) / 60e3); hero = { e: nxt, meta: mins <= 60 ? `In ${mins} min` : t12(nxt.start) }; }
+    else { const tm = (data.tomorrow || []).find(e => !e.allDay); if (tm) hero = { e: tm, meta: `Tomorrow · ${t12(tm.start)}` }; }
+    let heroCd = null;
+    if (!hero) {
+      const c = (data.countdowns || []).filter(cdShow).sort((a, b) => ((a.pri ?? 3) - (b.pri ?? 3)) || (a.days - b.days))[0];
+      if (c) {
+        const cands = (data.countdowns || []).filter(cdShow);
+        const same = c.pri === 1 ? cands.filter(x => x.pri === 1 && x.days === c.days) : [c];   // two P1s on one date share the hero: "A / B"
+        const titles = [...new Set(same.map(x => splitWho(x.label).title))];
+        heroCd = same; hero = { e: { title: titles.join(' / ') }, meta: c.days === 0 ? 'Today' : c.days === 1 ? 'Tomorrow' : `In ${c.days} days` };
+      }
+    }
+    if (!hero) hero = { e: { title: data.message || 'A quiet day' }, meta: '' };
+    const he = emojiFor(hero.e.title);
+    set('.js-hero', `${he ? `<span class="em">${he}</span>` : ''}<div class="w">${hero.meta ? `<div class="m tn">${esc(hero.meta)}</div>` : ''}<div class="h">${esc(hero.e.title)}</div></div>`);
+
+    // agenda: rest of today (timed, after the hero), today's reminders, then tomorrow; at most 4 lines, P1 first among reminders
+    const rows = [];
+    timed.filter(e => e !== hero.e && e.start > nowMs).forEach(e => rows.push({ k: 0, tm: t12(e.start), t: e.title }));
+    const rem = [];
+    (data.today || []).filter(e => e.allDay).forEach(e => rem.push({ pri: e.pri, t: e.title }));
+    [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.todos || [])].forEach(t => rem.push({ pri: prioOf(t), t: stripPrio(t) }));
+    rem.sort((a, b) => a.pri - b.pri).forEach(x => rows.push({ k: 1, tg: 'Today', t: x.t, pri: x.pri }));
+    (data.tomorrow || []).filter(e => e !== hero.e && e.time !== 'Gym').forEach(e => rows.push({ k: 2, tg: 'Tmrw', t: e.title, at: e.allDay ? '' : t12(e.start) }));
+    (data.tasks?.tomorrow || []).forEach(t => rows.push({ k: 2, tg: 'Tmrw', t: stripPrio(t) }));
+    const shownNorm = (heroCd ? heroCd.map(x => x.label) : [hero.e.title]).map(normLabel);
+    const list = rows.filter(r => !shownNorm.some(n => keyOk(n) && normLabel(r.t) === n)).slice(0, 4);
+    set('.js-ag', list.map(r => {
+      const lead = r.tm ? `<span class="tm tn">${esc(r.tm)}</span>` : `<span class="tg">${esc(r.tg)}</span>`;
+      const em = emojiFor(r.t);
+      return `<div class="r">${lead}<span class="em">${em}</span><span class="tx"${r.pri === 1 ? ' style="font-weight:800"' : ''}>${r.at ? `<span class="tn" style="font-weight:800">${esc(r.at)}</span> · ` : ''}${esc(r.t)}</span></div>`;
+    }).join('') || (data.message && hero.e.title !== data.message ? `<div class="msg">${esc(data.message)}</div>` : ''));
+
+    // countdown rings: same clusters as pad5 (P1 30 days, P2 10, P3 5; max 3), skipping the one in the hero
+    const base = [hero.e.title, ...list.map(r => r.t)].map(t => ({ norm: normLabel(t), days: 0 })).filter(x => keyOk(x.norm));
+    const cl = countdownClusters(data.countdowns, heroCd ? heroCd.map(x => ({ norm: normLabel(x.label), days: x.days })) : base);
+    const R = 36, C = 2 * Math.PI * R;
+    set('.js-rings', cl.map(g => {
+      const fill = Math.max(0, Math.min(1, 1 - g.days / 30)), bold = g.days <= CD_ALERT_DAYS;
+      let lab = g.names.map(n => n.title).join(' · ');
+      return `<div class="ring"><div class="rg"><svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="${R}" fill="${bold ? '#000' : 'none'}" stroke="#bbb" stroke-width="7"/>` +
+        (fill > .01 ? `<circle cx="42" cy="42" r="${R}" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(C * fill).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 42 42)"/>` : '') +
+        `</svg><div class="rn tn${g.days === 0 ? ' sm' : ''}" style="color:${bold ? '#fff' : '#000'}">${g.days === 0 ? 'today' : g.days}</div></div><div class="rl">${esc(lab)}</div></div>`;
+    }).join(''));
+
+    // family: fixed 2x2 (Me, Sujatha / Rhea, Lakshita); thick ring = at home; badge = place; time = since when (24 h)
+    const SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
+    const FACE = { me: 'icons/me.png?v=1', sujatha: 'icons/sujatha.png?v=1', rhea: 'icons/rhea.png?v=1', lakshita: 'icons/lakshita.png?v=1' };
+    const pres = (data.presence || []).filter(x => x && x.who && x.place);
+    set('.js-fam', pres.map(x => {
+      const me = String(x.who).toLowerCase() === 'rakesh', key = me ? 'me' : String(x.who).toLowerCase();
+      const isHome = /\bhome\b/i.test(x.place), moving = x.event === 'leave';
+      const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99, stale = moving && !isHome && ageH > 12, atHome = isHome && !moving;
+      const badge = stale ? '·' : key === 'sujatha' && !atHome ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
+      const when = x.at && !stale && !atHome ? hm24(new Date(x.at)) : '';
+      const s = SLOT[key], pos = s ? `grid-row:${s[0]};grid-column:${s[1]};` : '';
+      const face = FACE[key] ? `<img src="${FACE[key]}" alt="">` : esc(String(x.who)[0]);
+      return `<div class="pp${stale ? ' stale' : ''}" style="${pos}"><div class="av${atHome ? ' home' : ''}">${face}<span class="bd em">${badge}</span></div><div class="when tn">${when}</div></div>`;
+    }).join(''));
+
+    // workout: the next session's exercise pictures (same table as pad5)
+    const ids = workoutIds(data.workout);
+    set('.js-wo', ids.length ? ids.map(id => `<img src="img/ex/${String(id).replace(/[^\w-]/g, '')}.png" alt="">`).join('')
+      : data.workout && data.workout.title ? `<span class="wt">🏋️ ${esc(data.workout.title)}</span>` : '');
+    if (!ids.length && !(data.workout && data.workout.title)) $('.js-wo').style.borderTop = '0';
+
+    set('.js-upd', `updated ${hm24(now)}`);
+  }
+
+  // the screenshot job waits for window.__ready (and for images to load)
+  async function main() {
+    let data = null, wx = null, note = '';
+    try { data = await loadData(); } catch (e) { note = 'calendar unavailable'; data = normalize({}); }
+    try { wx = await loadWeather(); } catch (e) {}
+    try { render(data, wx); } catch (e) { note = 'render error: ' + e.message; }
+    if (DEMO) note = note || 'demo data';
+    if (note) set('.js-note', `<span class="err">${esc(note)}</span>`);
+    await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+    window.__ready = true;
+  }
+  main();
+})();
+</script>
+</body>
+</html>
