@@ -102,7 +102,7 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261118b';
+  const BUILD = 'kindle-20261119-carplay';
   if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
@@ -250,7 +250,7 @@
       tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: [], open: [] }, todos: [], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 9 }, { label: 'Lakshita · Olympiad', days: 4 }],
       workout: { title: 'Hack Squat (Day 1)' },
-      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'Home', event: 'leave', at: clockNow().getTime() - 20 * 60e3 }] : [],
+      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, (qs.get('drive') ? { who: 'Sujatha', place: 'Driving', event: 'arrive', at: clockNow().getTime() - 12 * 60e3 } : { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }), { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'Home', event: 'leave', at: clockNow().getTime() - 20 * 60e3 }] : [],
     };
   }
   const sampleWx = () => ({ temp: 29, code: 1, day: 1, hi: 31, lo: 18, rain: 10, aqi: 132 });
@@ -355,7 +355,8 @@
       const me = String(x.who).toLowerCase() === 'rakesh', key = me ? 'me' : String(x.who).toLowerCase();
       const isHome = /\bhome\b/i.test(x.place), moving = x.event === 'leave';
       const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99, stale = moving && !isHome && ageH > 12, atHome = isHome && !moving;
-      const badge = stale ? '·' : key === 'sujatha' && !atHome ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
+      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < 3;   // CarPlay connected (Shortcut); expires after 3 h
+      const badge = stale ? '·' : driving ? '🚗' : key === 'sujatha' && !atHome ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
       const when = x.at && !stale && !atHome ? hm24(new Date(x.at)) : '';
       const s = SLOT[key], pos = s ? `grid-row:${s[0]};grid-column:${s[1]};` : '';
       const face = FACE[key] ? `<img src="${FACE[key]}" alt="">` : esc(String(x.who)[0]);

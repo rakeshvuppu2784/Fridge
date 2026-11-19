@@ -260,7 +260,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261113-midnight';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261119-carplay';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -416,7 +416,7 @@
       todos: ['!! Pay internet bill'], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
       message: 'Proud of you, champ!', pack: 'Hall ticket', meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, rice, beans fry', prep: 'Soak rajma tonight' }, tomorrow: null }, photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: qs.get('wo') ? 'Day ' + qs.get('wo') : 'Hack Squat + Chest/Back' },
-      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }, { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
+      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, (qs.get('drive') ? { who: 'Sujatha', place: 'Driving', event: 'arrive', at: Date.now() - 12 * 60e3 } : { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }), { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
     };
   }
 
@@ -933,6 +933,7 @@
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
   ];
   const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
+  const DRIVE_MAX_H = 3;   // a 'Driving' report older than this (phone died before CarPlay disconnected) no longer shows the car
   // 24-hour time
   const hm24 = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   // family presence: a fixed illustrated portrait per person (icons/<key>.png); falls back to the initial if the image fails
@@ -952,9 +953,10 @@
       const stale = moving && !isHome && ageH > 12;           // left somewhere (not home) long ago, never arrived: unknown
       const atHome = isHome && !moving;                         // 'left Home' means out, not home
       const away = key === 'sujatha' && !atHome;               // wife out of home: woman-at-laptop badge
-      const badge = stale ? '·' : away ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
+      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < DRIVE_MAX_H;   // CarPlay connected (Shortcut), not a guess
+      const badge = stale ? '·' : driving ? '🚗' : away ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
-      const label = `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
+      const label = driving ? `${x.who}: driving` : `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
       const homeRing = atHome ? `box-shadow:0 0 0 calc(var(--u)*.3) ${col};` : '';   // at home: a thin ring, no label
       const slot = FAMILY_SLOT[key], pos = slot ? `grid-row:${slot[0]};grid-column:${slot[1]};` : '';
       return `<div class="pp${stale ? ' stale' : ''}" style="${pos}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${!atHome && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
