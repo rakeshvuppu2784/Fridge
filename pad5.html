@@ -260,7 +260,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261119-carplay';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261120-drive90m';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -933,7 +933,7 @@
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
   ];
   const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
-  const DRIVE_MAX_H = 3;   // a 'Driving' report older than this (phone died before CarPlay disconnected) no longer shows the car
+  const DRIVE_MAX_H = 1.5;   // 60 min drive + 30 min traffic buffer: an older 'Driving' report (CarPlay disconnect missed) no longer shows the car
   // 24-hour time
   const hm24 = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   // family presence: a fixed illustrated portrait per person (icons/<key>.png); falls back to the initial if the image fails

@@ -102,7 +102,7 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261119-carplay';
+  const BUILD = 'kindle-20261120-drive90m';
   if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
@@ -355,7 +355,7 @@
       const me = String(x.who).toLowerCase() === 'rakesh', key = me ? 'me' : String(x.who).toLowerCase();
       const isHome = /\bhome\b/i.test(x.place), moving = x.event === 'leave';
       const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99, stale = moving && !isHome && ageH > 12, atHome = isHome && !moving;
-      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < 3;   // CarPlay connected (Shortcut); expires after 3 h
+      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < 1.5;   // CarPlay connected (Shortcut); expires after 90 min (60 min drive + 30 min buffer)
       const badge = stale ? '·' : driving ? '🚗' : key === 'sujatha' && !atHome ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
       const when = x.at && !stale && !atHome ? hm24(new Date(x.at)) : '';
       const s = SLOT[key], pos = s ? `grid-row:${s[0]};grid-column:${s[1]};` : '';
