@@ -102,7 +102,7 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261120-drive90m';
+  const BUILD = 'kindle-20261120-rhea-drive60';
   if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
@@ -229,6 +229,7 @@
   // fixed 2x2 slots [row, col]: Rakesh and Sujatha on top, Rhea and Lakshita below; never reordered by arrival time
   const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
   const PLACE_MAP = [
+    [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolive\b/i, '🐶'], [/good\s*vet/i, '🐾'],
     [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
     [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
@@ -355,7 +356,7 @@
       const me = String(x.who).toLowerCase() === 'rakesh', key = me ? 'me' : String(x.who).toLowerCase();
       const isHome = /\bhome\b/i.test(x.place), moving = x.event === 'leave';
       const ageH = x.at ? (nowMs - x.at) / 3600e3 : 99, stale = moving && !isHome && ageH > 12, atHome = isHome && !moving;
-      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < 1.5;   // CarPlay connected (Shortcut); expires after 90 min (60 min drive + 30 min buffer)
+      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < (key === 'rhea' ? 1 : 1.5);   // CarPlay connected (Shortcut); expires after 90 min (Rhea 60 min)
       const badge = stale ? '·' : driving ? '🚗' : key === 'sujatha' && !atHome ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
       const when = x.at && !stale && !atHome ? hm24(new Date(x.at)) : '';
       const s = SLOT[key], pos = s ? `grid-row:${s[0]};grid-column:${s[1]};` : '';

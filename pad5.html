@@ -260,7 +260,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261120-drive90m';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261120-rhea-drive60';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -928,11 +928,13 @@
   // fixed 2x2 slots [row, col]: Rakesh and Sujatha on top, Rhea and Lakshita below; never reordered by arrival time
   const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
   const PLACE_MAP = [
+    [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolive\b/i, '🐶'], [/good\s*vet/i, '🐾'],
     [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
     [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
   ];
   const placeEmoji = p => { for (const [re, e] of PLACE_MAP) if (re.test(p)) return e; return '📍'; };
+  const DRIVE_MAX_BY = { rhea: 1 };   // per-person override (hours): Rhea's drives are shorter
   const DRIVE_MAX_H = 1.5;   // 60 min drive + 30 min traffic buffer: an older 'Driving' report (CarPlay disconnect missed) no longer shows the car
   // 24-hour time
   const hm24 = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
@@ -953,7 +955,7 @@
       const stale = moving && !isHome && ageH > 12;           // left somewhere (not home) long ago, never arrived: unknown
       const atHome = isHome && !moving;                         // 'left Home' means out, not home
       const away = key === 'sujatha' && !atHome;               // wife out of home: woman-at-laptop badge
-      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < DRIVE_MAX_H;   // CarPlay connected (Shortcut), not a guess
+      const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < (DRIVE_MAX_BY[String(x.who).toLowerCase()] || DRIVE_MAX_H);   // CarPlay connected (Shortcut), not a guess
       const badge = stale ? '·' : driving ? '🚗' : away ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
       const label = driving ? `${x.who}: driving` : `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
