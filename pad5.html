@@ -260,7 +260,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261120-rhea-drive60';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261121-rhea-mom-dad';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -928,7 +928,7 @@
   // fixed 2x2 slots [row, col]: Rakesh and Sujatha on top, Rhea and Lakshita below; never reordered by arrival time
   const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
   const PLACE_MAP = [
-    [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolive\b/i, '🐶'], [/good\s*vet/i, '🐾'],
+    [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolives?\b/i, '🐶'], [/good\s*vet/i, '🐾'], [/^\s*(mom|mum|amma)\b/i, '👩🏽'], [/^\s*(dad|papa|nanna)\b/i, '👨🏽'],
     [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
     [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],

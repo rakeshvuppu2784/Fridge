@@ -102,7 +102,7 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261120-rhea-drive60';
+  const BUILD = 'kindle-20261121-rhea-mom-dad';
   if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
@@ -229,7 +229,7 @@
   // fixed 2x2 slots [row, col]: Rakesh and Sujatha on top, Rhea and Lakshita below; never reordered by arrival time
   const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
   const PLACE_MAP = [
-    [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolive\b/i, '🐶'], [/good\s*vet/i, '🐾'],
+    [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolives?\b/i, '🐶'], [/good\s*vet/i, '🐾'], [/^\s*(mom|mum|amma)\b/i, '👩🏽'], [/^\s*(dad|papa|nanna)\b/i, '👨🏽'],
     [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
     [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
