@@ -173,6 +173,11 @@
   /* DESK TYPE SCALE: desk viewing distance (~60 cm) needs smaller type than a fridge. These override the sizes above; tune here only. */
   .clock { font-size: calc(var(--u)*12.5); }
   .date { font-size: calc(var(--u)*2.2); }
+  /* long-range goals: quiet, on the date line, never gold or red */
+  .goals { margin-left: calc(var(--u)*1.6); opacity: .55; font-size: .86em; letter-spacing: .03em; }
+  .goals b { font-weight: 500; margin-left: calc(var(--u)*1.2); }
+  .goals b:first-child { margin-left: 0; }
+  .goals i { font-style: normal; opacity: .7; }
   .we { font-size: 46px; }
   .wd { font-size: calc(var(--u)*8.5); }
   .bdg { font-size: calc(var(--u)*2.3); }
@@ -260,7 +265,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261121-rhea-mom-dad';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261124-goals';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -1005,11 +1010,22 @@
 
   function isNight() { const h = clockNow().getHours(); return h >= NIGHT_FROM || h < NIGHT_TO; }
 
+  // long-range countdowns for the girls, shown quietly after the date. Dates are ESTIMATES until the official schedules are out: edit here.
+  const GOALS = [
+    { k: 'SSC', d: '2027-03-15' },   // Telangana SSC 2027 (2026 began 14 Mar; 2027 timetable due Dec 2026)
+    { k: 'JEE', d: '2029-01-21' },   // JEE Main 2029 session 1 (2026 began 21 Jan)
+  ];
+  function goalsHtml(now) {
+    const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
+    const parts = GOALS.map(g => ({ k: g.k, n: Math.round((new Date(g.d + 'T00:00:00') - d0) / 864e5) })).filter(g => g.n >= 0);
+    return parts.length ? `<span class="goals">${parts.map(g => `<b>${g.k} ${g.n}<i>d</i></b>`).join('')}</span>` : '';
+  }
+
   let lastMinute = -1;
   function tick() {
     const now = clockNow();
     set('.js-clock', hm(now));
-    set('.js-date', isNight() ? '' : `${DAYS[now.getDay()].slice(0, 3)} ${now.getDate()} ${MONTHS[now.getMonth()].slice(0, 3)}`);
+    set('.js-date', isNight() ? '' : `${DAYS[now.getDay()].slice(0, 3)} ${now.getDate()} ${MONTHS[now.getMonth()].slice(0, 3)}${goalsHtml(now)}`);
     set('.js-i-clock', hm(now));
     $('#dim').style.opacity = (!F && isNight()) ? '0.62' : '0';
     if (now.getMinutes() !== lastMinute) { lastMinute = now.getMinutes(); render(); }
