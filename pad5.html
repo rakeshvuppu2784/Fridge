@@ -201,6 +201,25 @@
   .mrow, .rn { font-size: calc(var(--u)*2.8); }
   .rn.sm, .rl { font-size: calc(var(--u)*2.1); }
   .ph-cap, .ph-empty, .status, .banner { font-size: calc(var(--u)*2.1); }
+
+  /* tick-off sheet: tap the agenda card to open; tap a row to mark it done (tap again to undo) */
+  .js-tray { cursor: pointer; }
+  #sheet { position: absolute; inset: 0; z-index: 10; background: rgba(8,9,14,.86); display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity .25s, visibility 0s .25s; }
+  #sheet.on { opacity: 1; visibility: visible; transition: opacity .25s; }
+  .sh { width: calc(var(--u)*120); max-width: 94%; max-height: 88%; display: flex; flex-direction: column; gap: calc(var(--u)*2); padding: calc(var(--u)*3); border-radius: calc(var(--u)*3); background: #1A1C26; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .sh-hd { display: flex; align-items: center; justify-content: space-between; font-family: var(--serif); font-size: calc(var(--u)*4.2); }
+  .sh-x { width: calc(var(--u)*7); height: calc(var(--u)*7); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.08); font-size: calc(var(--u)*3.4); color: var(--dim); }
+  .sh-ls { overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u)*1) calc(var(--u)*2.4); align-content: start; }
+  .sh-g { grid-column: 1 / -1; font-size: calc(var(--u)*2); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin-top: calc(var(--u)*1); }
+  .sh-r { display: flex; align-items: center; gap: calc(var(--u)*1.6); min-height: calc(var(--u)*7.4); padding: 0 calc(var(--u)*1.6); border-radius: calc(var(--u)*2); background: rgba(255,255,255,.06); font-size: calc(var(--u)*2.7); min-width: 0; transition: opacity .3s; }
+  .sh-r .ck { flex: none; width: calc(var(--u)*4.2); height: calc(var(--u)*4.2); border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(243,236,223,.5); display: flex; align-items: center; justify-content: center; font-size: calc(var(--u)*2.6); color: var(--ink); }
+  .sh-r .tx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .sh-r .wn { flex: none; margin-left: auto; font-size: calc(var(--u)*2.1); color: var(--dim); }
+  .sh-r.done { opacity: .5; } .sh-r.done .tx { text-decoration: line-through; }
+  .sh-r.done .ck { background: var(--gold); box-shadow: none; }
+  .sh-r.busy .ck { box-shadow: inset 0 0 0 2px var(--gold); }
+  .sh-r.err { animation: shake .35s; } @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .sh-empty { grid-column: 1 / -1; color: var(--dim); font-size: calc(var(--u)*2.6); padding: calc(var(--u)*3) 0; text-align: center; }
 </style>
 </head>
 <body>
@@ -258,6 +277,7 @@
   <div id="confetti"></div>
   <div id="dim"></div>
   <div class="status js-status"></div>
+  <div id="sheet"><div class="sh"><div class="sh-hd"><span>Tick off</span><span class="sh-x js-sh-x">✕</span></div><div class="sh-ls js-sh-ls"></div></div></div>
   <div class="banner js-banner" hidden>Showing sample data. Open with ?api=YOUR_EXEC_URL&amp;key=YOUR_KEY to connect.</div>
 </div>
 
@@ -272,7 +292,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261125-homeby4';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261125-tick1';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -426,6 +446,8 @@
       tomorrow: [allDay('Diwali', 'All', '#E8E2D6', 1), ev('Weekly test', 7, 0, 60, 'Rhea', '#7FB3FF', 1)],
       tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: ['Mon · Parent-teacher meeting'], open: [] },
       todos: ['!! Pay internet bill'], shopping: ['Curd', 'Bananas'],
+      due: [{ id: 2, item: 'Gas cylinder', emoji: '🔥', days: 0, lead: 3 }, { id: 3, item: 'RO filter', emoji: '💧', days: 2, lead: 3 }],
+      tick: [{ k: 'task', id: 't1', text: 'Pay internet bill', g: 'Today' }, { k: 'task', id: 't2', text: 'Gas cylinder booking', g: 'Tomorrow' }, { k: 'list', id: 'r5', text: 'Curd', g: 'Shopping' }, { k: 'list', id: 'r6', text: 'Bananas', g: 'Shopping' }, { k: 'due', id: '2', text: 'Gas cylinder', g: 'Due', wn: 'today' }, { k: 'due', id: '3', text: 'RO filter', g: 'Due', wn: 'in 2 days' }],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
       message: 'Proud of you, champ!', pack: 'Hall ticket', meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, rice, beans fry', prep: 'Soak rajma tonight' }, tomorrow: null }, photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: qs.get('wo') ? 'Day ' + qs.get('wo') : 'Hack Squat + Chest/Back' },
       presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, (qs.get('drive') ? { who: 'Sujatha', place: 'Driving', event: 'arrive', at: Date.now() - 12 * 60e3 } : { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }), { who: 'Rhea', place: 'Allen', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
@@ -658,6 +680,9 @@
     let r = 0;
     (data.today || []).filter(e => e.allDay && !(bdHero && /['’]s birthday/i.test(e.title || ''))).forEach(e => { add(e.pri, { tag: nTag, emoji: emojiFor(e.title), text: short(tidy(e.title)), mark: { title: e.title } }); r++; });
     if (wx && wx.hi >= HOT_NUDGE) add(2, { tag: nTag, icon: 'drop', text: 'Carry water' });
+    // household due list (Due tab): from `lead` days before (default 3); overdue / due today rank as P1
+    (data.due || []).filter(d => d && d.item && d.days != null && d.days <= (d.lead ?? 3))
+      .forEach(d => add(d.days <= 0 ? 1 : 2, { tag: d.days < 0 ? 'Late' : d.days === 0 ? 'Due' : `${d.days}d`, emoji: d.emoji || '🔁', text: short(d.item) }));
     [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.todos || [])].forEach(t => { add(prioOf(t), { tag: nTag, emoji: emojiFor(stripPrio(t)), text: short(stripPrio(t)), mark: { title: stripPrio(t) } }); r++; });
     // tomorrow
     let t = 0;
@@ -1157,6 +1182,50 @@
     $('#confetti').innerHTML = h;
     clearTimeout(confettiTimer); confettiTimer = setTimeout(() => { $('#confetti').innerHTML = ''; }, CONFETTI_FOR);
   }
+
+  // ---------- Tick-off sheet: tap the agenda card, tap a row to mark it done; tap again to undo ----------
+  // The backend sends data.tick = [{ k: 'task'|'list'|'due', id, text, g: group, wn?: when }] and accepts
+  // ?action=done&key=<dashboard key>&k=..&id=..[&undo=1]. Ticked rows stay (struck through) until the sheet closes.
+  const SHEET_IDLE = 45e3, G_ORDER = ['Today', 'Tomorrow', 'Due', 'To-do', 'Shopping', 'This week', 'Later'];
+  let sheetTimer = null, sheetDirty = false;
+  const sheetPoke = () => { clearTimeout(sheetTimer); sheetTimer = setTimeout(closeSheet, SHEET_IDLE); };
+  function openSheet() {
+    if (!data || isNight()) return;
+    const items = (data.tick || []).filter(x => x && x.id != null && x.text);
+    const groups = [...new Set([...G_ORDER, ...items.map(x => x.g || 'Later')])].filter(g => items.some(x => (x.g || 'Later') === g));
+    const html = groups.map(g => `<div class="sh-g">${esc(g)}</div>` + items.filter(x => (x.g || 'Later') === g).map(x =>
+      `<div class="sh-r" data-k="${esc(x.k)}" data-id="${esc(x.id)}"><span class="ck"></span><span class="tx">${esc(stripPrio(x.text))}</span>${x.wn ? `<span class="wn">${esc(x.wn)}</span>` : ''}</div>`).join('')).join('');
+    $('.js-sh-ls').innerHTML = html || '<div class="sh-empty">Nothing open. Nice.</div>';
+    $('#sheet').classList.add('on'); sheetPoke();
+  }
+  function closeSheet() {
+    clearTimeout(sheetTimer); $('#sheet').classList.remove('on');
+    if (sheetDirty) { sheetDirty = false; setTimeout(loadData, 1500); }
+  }
+  async function tickRow(row) {
+    if (row.classList.contains('busy')) return;
+    const undo = row.classList.contains('done');
+    row.classList.add('busy'); row.classList.toggle('done', !undo); row.querySelector('.ck').textContent = undo ? '' : '✓';
+    let ok = DEMO;
+    if (!DEMO) {
+      try {
+        const u = `${cfg.api}?action=done&key=${encodeURIComponent(cfg.key)}&k=${encodeURIComponent(row.dataset.k)}&id=${encodeURIComponent(row.dataset.id)}${undo ? '&undo=1' : ''}`;
+        const j = await fetch(u, { cache: 'no-store' }).then(r => r.json());
+        ok = !!(j && j.ok);
+      } catch (e) { ok = false; }
+    }
+    row.classList.remove('busy');
+    if (!ok) { row.classList.toggle('done', undo); row.querySelector('.ck').textContent = undo ? '✓' : ''; row.classList.add('err'); setTimeout(() => row.classList.remove('err'), 400); return; }
+    sheetDirty = true;
+  }
+  $('.js-tray').addEventListener('click', openSheet);
+  $('.js-sh-x').addEventListener('click', e => { e.stopPropagation(); closeSheet(); });
+  $('#sheet').addEventListener('click', e => {
+    sheetPoke();
+    const row = e.target.closest('.sh-r'); if (row) { tickRow(row); return; }
+    if (!e.target.closest('.sh')) closeSheet();   // tap outside the panel closes it
+  });
+  window.__openSheet = openSheet;
 
   // ---------- Self-update: pick up new releases without anyone touching the tablet ----------
   let lastCheck = Date.now();

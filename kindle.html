@@ -67,6 +67,11 @@
   .wo { position: absolute; left: 20px; right: 20px; bottom: 30px; height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 2px solid #ccc; padding: 8px 6px 0; }
   .wo img { width: 50px; height: 50px; border-radius: 50%; filter: grayscale(1) contrast(1.2); background: #eee; margin-left: auto; }
   .wo .wt { font-size: 22px; font-weight: 700; margin-left: auto; }
+  /* shopping (kitchen view): what to pick up, on the right of the strip */
+  .shop { margin-left: auto; display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 24px; font-weight: 700; }
+  .shop .em { font-size: 26px; }
+  .shop .sx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .shop .sm { flex-shrink: 0; background: #000; color: #fff; border-radius: 6px; padding: 0 7px; font-size: 20px; }
   .gls { display: flex; align-items: center; gap: 24px; }
   .gl { display: flex; align-items: center; gap: 8px; }
   .gr { position: relative; width: 46px; height: 46px; }
@@ -109,7 +114,7 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261125-allen2';
+  const BUILD = 'kindle-20261125-kitchen1';
   if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
@@ -275,7 +280,8 @@
       tomorrow: [ev('Weekly test', 7, 0, 60, 'Rhea', 1)],
       tasks: { today: [], tomorrow: ['Gas cylinder booking'], soon: [], open: [] }, todos: [], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 9 }, { label: 'Lakshita · Olympiad', days: 4 }],
-      workout: { title: 'Hack Squat (Day 1)' },
+      workout: { title: 'Hack Squat (Day 1)' }, pack: 'Hall ticket',
+      due: qs.get('due') ? [{ id: 2, item: 'Gas cylinder', emoji: '🔥', days: 0, lead: 3 }, { id: 3, item: 'RO filter', emoji: '💧', days: 2, lead: 3 }, { id: 4, item: 'Car service', emoji: '🚗', days: 40, lead: 7 }] : [],
       presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, (qs.get('drive') ? { who: 'Sujatha', place: 'Driving', event: 'arrive', at: clockNow().getTime() - 12 * 60e3 } : { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }), { who: 'Rhea', place: 'Allen', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'Home', event: 'leave', at: clockNow().getTime() - 20 * 60e3 }] : [],
     };
   }
@@ -350,14 +356,18 @@
     const rem = [];
     (data.today || []).filter(e => e.allDay).forEach(e => rem.push({ pri: e.pri, t: e.title }));
     [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.todos || [])].forEach(t => rem.push({ pri: prioOf(t), t: stripPrio(t) }));
-    rem.sort((a, b) => a.pri - b.pri).forEach(x => rows.push({ k: 1, tg: 'Today', t: x.t, pri: x.pri }));
+    // household due list (Due tab): shown from `lead` days before (default 3); overdue and due-today count as P1
+    (data.due || []).filter(d => d && d.item && d.days != null && d.days <= (d.lead ?? 3)).forEach(d =>
+      rem.push({ pri: d.days <= 0 ? 1 : 2, t: d.item, em: d.emoji || '🔁', tg: d.days < 0 ? 'Late' : d.days === 0 ? 'Due' : `${d.days}d` }));
+    rem.sort((a, b) => a.pri - b.pri).forEach(x => rows.push({ k: 1, tg: x.tg || 'Today', t: x.t, pri: x.pri, em: x.em }));
     (data.tomorrow || []).filter(e => e !== hero.e && e.time !== 'Gym').forEach(e => rows.push({ k: 2, tg: 'Tmrw', t: e.title, at: e.allDay ? '' : t12(e.start) }));
+    if (data.pack) rows.push({ k: 2, tg: 'Tmrw', t: 'Pack ' + data.pack, em: '🧳' });
     (data.tasks?.tomorrow || []).forEach(t => rows.push({ k: 2, tg: 'Tmrw', t: stripPrio(t) }));
     const shownNorm = (heroCd ? heroCd.map(x => x.label) : [hero.e.title]).map(normLabel);
     const list = rows.filter(r => !shownNorm.some(n => keyOk(n) && normLabel(r.t) === n)).slice(0, 4);
     set('.js-ag', list.map(r => {
       const lead = r.tm ? `<span class="tm tn">${esc(r.tm)}</span>` : `<span class="tg">${esc(r.tg)}</span>`;
-      const em = emojiFor(r.t);
+      const em = r.em || emojiFor(r.t);
       return `<div class="r">${lead}<span class="em">${em}</span><span class="tx"${r.pri === 1 ? ' style="font-weight:800"' : ''}>${r.at ? `<span class="tn" style="font-weight:800">${esc(r.at)}</span> · ` : ''}${esc(r.t)}</span></div>`;
     }).join('') || (data.message && hero.e.title !== data.message ? `<div class="msg">${esc(data.message)}</div>` : ''));
 
@@ -389,11 +399,16 @@
       return `<div class="pp${stale ? ' stale' : ''}" style="${pos}"><div class="av${atHome ? ' home' : ''}">${face}<span class="bd em">${badge}</span></div><div class="when tn">${when}</div></div>`;
     }).join(''));
 
-    // bottom strip: goals on the left; only the first (engine) exercise of the next session on the right (falls back to the title)
-    const first = workoutIds(data.workout)[0];
-    const exHtml = first ? `<img src="img/ex/${String(first).replace(/[^\w-]/g, '')}.png?v=${EX_V}" alt="">`
-      : data.workout && data.workout.title ? `<span class="wt">🏋️ ${esc(data.workout.title)}</span>` : '';
-    const strip = goalsHtml(now) + exHtml;
+    // bottom strip (kitchen view, 25 Nov): goals on the left, the shopping list on the right. The workout lives on the desk Pad only.
+    // items a reminder already covers are left out, as on pad5; the list is cut to what fits and the rest is counted (+N)
+    const flat = x => String(x).toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    const covered = [...(data.tasks?.today || []), ...(data.tasks?.open || []), ...(data.tasks?.soon || []), ...(data.tasks?.tomorrow || []), ...(data.todos || [])].map(flat);
+    const shop = (data.shopping || []).map(stripPrio).filter(it => { const n = flat(it); return n && (n.length < 3 || !covered.some(c => c.includes(n))); });
+    const SHOP_CHARS = document.body.classList.contains('land') ? 34 : 18;
+    let take = 0, len = 0;
+    while (take < shop.length && (take === 0 || len + shop[take].length + 3 <= SHOP_CHARS)) { len += shop[take].length + 3; take++; }
+    const shopHtml = shop.length ? `<div class="shop"><span class="em">🛒</span><span class="sx">${esc(shop.slice(0, take).join(' · '))}</span>${shop.length > take ? `<span class="sm tn">+${shop.length - take}</span>` : ''}</div>` : '';
+    const strip = goalsHtml(now) + shopHtml;
     set('.js-wo', strip);
     if (!strip) $('.js-wo').style.borderTop = '0';
 
