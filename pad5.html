@@ -80,6 +80,9 @@
   .wo:empty { display: none; }
   .wo.ex { gap: calc(var(--u)*1.2); padding: 0; background: none; border: 0; align-items: center; }
   .ex-t { display: block; flex: 0 1 calc(var(--u)*8); min-width: 0; height: auto; aspect-ratio: 1 / 1; border-radius: 50%; -webkit-user-drag: none; }
+  /* the day's first (engine) exercise: one small picture at the right end of the countdown row, a step quieter than the rings */
+  .wo1 { flex: 0 0 auto; margin-left: auto; margin-top: calc(var(--u)*.6); width: calc(var(--u)*6.8); height: calc(var(--u)*6.8); border-radius: 50%; opacity: .85; box-shadow: 0 0 0 1px rgba(255,255,255,.14); }
+  .wo1 img { display: block; width: 100%; height: 100%; border-radius: 50%; -webkit-user-drag: none; }
   .meals { display: flex; flex-direction: column; gap: calc(var(--u)*.5); min-width: 0; }
   .meals:empty { display: none; }
   .mrow { display: flex; align-items: center; gap: calc(var(--u)*1.4); height: calc(var(--u)*4.2); font-size: calc(var(--u)*3.6); min-width: 0; }
@@ -268,7 +271,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261124-goals2';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261125-ex1';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -680,11 +683,12 @@
     };
     chips.innerHTML = shown.map(chipHtml).join('') + (hid ? `<span class="chip more"><span class="ct">+${hid}</span></span>` : '');
 
-    // workout: the day's 4-5 exercise pictures (falls back to the one-line title when the day is unknown)
-    const w = data.workout, ids = workoutIds(w);
-    const woHtml = ids.length ? ids.map(id => `<img class="ex-t" src="img/ex/${String(id).replace(/[^\w-]/g, '')}.png?v=${EX_V}" alt="" draggable="false" onerror="this.remove()">`).join('')
-      : w && w.title ? `${svgIc('dumbbell', 31, 'var(--dim)')}<span class="wt">${esc(w.title)}</span>` : '';
-    wo.classList.toggle('ex', ids.length > 0);
+    // workout: only the day's first exercise (the engine lift), as one small picture at the end of the countdown row; the upper-body accessories are not shown.
+    // Falls back to the one-line title in its own row when the day is unknown.
+    const w = data.workout, first = workoutIds(w)[0];
+    const exHtml = first ? `<div class="wo1"><img src="img/ex/${String(first).replace(/[^\w-]/g, '')}.png?v=${EX_V}" alt="" draggable="false" onerror="this.parentNode.remove()"></div>` : '';
+    const woHtml = !first && w && w.title ? `${svgIc('dumbbell', 31, 'var(--dim)')}<span class="wt">${esc(w.title)}</span>` : '';
+    wo.classList.remove('ex');
     if (wo.dataset.h !== woHtml || !wo.firstChild) { wo.dataset.h = woHtml; wo.innerHTML = woHtml; }   // rebuild only when it changed, so the pictures do not flicker every minute
 
     // countdown rings (last row, inside the card): gold at 3 days or fewer
@@ -697,7 +701,7 @@
       return `<div class="ring"><div class="rg"><svg viewBox="0 0 72 72"><circle cx="36" cy="36" r="${R}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="5.4"/>` +
         (fill > .01 ? `<circle cx="36" cy="36" r="${R}" fill="none" stroke="${col}" stroke-width="5.4" stroke-linecap="round" stroke-dasharray="${(C * fill).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 36 36)"/>` : '') +
         `</svg><div class="rn tn${g.days === 0 ? ' sm' : ''}" style="color:${col}">${g.days === 0 ? 'today' : g.days}</div>${dots}</div><div class="rl">${esc(lab)}</div></div>`;
-    }).join(''));
+    }).join('') + exHtml);
 
     // the card shrinks to fit: drop row c (workout) first, then row b (chips), never the rings
     const cap = $('#stage').offsetHeight * .39;
