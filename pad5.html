@@ -45,6 +45,7 @@
   .fam .bd { position: absolute; right: calc(var(--av)*-.14); bottom: calc(var(--av)*-.09); width: calc(var(--av)*.46); height: calc(var(--av)*.46); border-radius: 50%; background: transparent; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); display: flex; align-items: center; justify-content: center; font-size: calc(var(--u)*2.6); }
   .fam .since { font-size: calc(var(--u)*3); color: #C3CBD6; white-space: nowrap; }
   .fam .stale { opacity: .45; }
+  .fam .since.late { color: var(--gold); font-weight: 600; }
   .tile { width: calc(var(--u)*9); height: calc(var(--u)*9); border-radius: calc(var(--u)*2); display: flex; align-items: center; justify-content: center; }
   .te { font-size: calc(var(--u)*4.2); line-height: 1; }
   .td { display: block; width: 22px; height: 22px; border-radius: 11px; }
@@ -271,7 +272,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261125-ex1b';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261125-homeby';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -427,7 +428,7 @@
       todos: ['!! Pay internet bill'], shopping: ['Curd', 'Bananas'],
       countdowns: [{ label: 'Diwali', days: 1 }, { label: '! Rhea · NSEC', days: 15 }, { label: 'Lucky · NSEJS', days: 15 }],
       message: 'Proud of you, champ!', pack: 'Hall ticket', meals: { today: { breakfast: 'Idli', lunch: 'Lemon rice', dinner: 'Dal, rice, beans fry', prep: 'Soak rajma tonight' }, tomorrow: null }, photos: qs.get('photos') ? [{ id: 'demo-a', w: 1200, h: 1600, t: '2017-02' }, { id: 'demo-b', w: 1600, h: 1200, t: '2019-11-08' }, { id: 'demo-c', w: 1200, h: 1600, t: '2021-05' }, { id: 'demo-d', w: 1600, h: 1200, t: '2023-08' }] : [], workout: { title: qs.get('wo') ? 'Day ' + qs.get('wo') : 'Hack Squat + Chest/Back' },
-      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, (qs.get('drive') ? { who: 'Sujatha', place: 'Driving', event: 'arrive', at: Date.now() - 12 * 60e3 } : { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }), { who: 'Rhea', place: 'FIITJEE', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
+      presence: qs.get('fam') ? [{ who: 'Rakesh', place: 'Office', event: 'arrive', at: base.getTime() + 9.4 * 3600e3 }, (qs.get('drive') ? { who: 'Sujatha', place: 'Driving', event: 'arrive', at: Date.now() - 12 * 60e3 } : { who: 'Sujatha', place: 'Home', event: 'arrive', at: base.getTime() + 8 * 3600e3 }), { who: 'Rhea', place: 'Allen', event: 'arrive', at: base.getTime() + 10 * 3600e3 }, { who: 'Lakshita', place: 'School', event: 'leave', at: Date.now() - 20 * 60e3 }] : [],
     };
   }
 
@@ -941,7 +942,7 @@
   const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
   const PLACE_MAP = [
     [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolives?\b/i, '🐶'], [/good\s*vet/i, '🐾'], [/^\s*(mom|mum|amma)\b/i, '👩🏽'], [/^\s*(dad|papa|nanna)\b/i, '👨🏽'],
-    [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(fiitjee|coaching|tuition|academy|institute|class)/i, '📚'],
+    [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(\ballen\b|coaching|tuition|academy|institute|class)/i, '📚'],
     [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
   ];
@@ -953,6 +954,19 @@
   // family presence: a fixed illustrated portrait per person (icons/<key>.png); falls back to the initial if the image fails
   const FACE = { me: 'icons/me.png?v=1', sujatha: 'icons/sujatha.png?v=1', rhea: 'icons/rhea.png?v=1', lakshita: 'icons/lakshita.png?v=1' };
   const faceHtml = (key, who) => { const ini = esc(String(who)[0] || '?'); return FACE[key] ? `<img src="${FACE[key]}" alt="${ini}" onerror="this.replaceWith(document.createTextNode(this.alt))">` : ini; };
+  // expected home: if someone went out today and is not home by this time (+ grace), their time turns gold. Days: 0 = Sun ... 6 = Sat.
+  const EXPECT_HOME = {
+    rhea:     { days: [1, 2, 3, 4, 5, 6], by: '17:15', grace: 20 },
+    lakshita: { days: [1, 2, 3, 4, 5, 6], by: '17:15', grace: 20 },
+    sujatha:  { days: [1, 2, 3, 4, 5, 6], by: '19:30', grace: 20 },
+  };
+  function isLate(key, x, nowMs, atHome, driving) {
+    const r = EXPECT_HOME[key]; if (!r || atHome || driving || !x.at) return false;
+    const now = new Date(nowMs); if (!r.days.includes(now.getDay())) return false;
+    const day0 = new Date(now).setHours(0, 0, 0, 0); if (x.at < day0) return false;   // only if they actually went out today
+    const [h, m] = r.by.split(':').map(Number);
+    return nowMs >= day0 + ((h * 60 + m + (r.grace || 0)) * 60e3);
+  }
   // fixed person colours (override any computed colour)
   const FIXED_COL = { me: '#F2B47A', sujatha: '#F28FAD', rhea: '#D7B4F0', lakshita: '#8FD0E0' };
   function renderFamily(nowMs) {
@@ -970,10 +984,11 @@
       const driving = /\bdriving\b/i.test(x.place) && !moving && ageH < (DRIVE_MAX_BY[String(x.who).toLowerCase()] || DRIVE_MAX_H);   // CarPlay connected (Shortcut), not a guess
       const badge = stale ? '·' : driving ? '🚗' : away ? '👩🏽‍💻' : atHome ? '🏠' : moving && isHome ? '🚗' : placeEmoji(x.place);
       const when = x.at && !stale ? hm24(new Date(x.at)) : '';
+      const late = isLate(key, x, nowMs, atHome, driving);
       const label = driving ? `${x.who}: driving` : `${x.who}: ${moving ? 'left' : 'arrived at'} ${x.place}`;
       const homeRing = atHome ? `box-shadow:0 0 0 calc(var(--u)*.3) ${col};` : '';   // at home: a thin ring, no label
       const slot = FAMILY_SLOT[key], pos = slot ? `grid-row:${slot[0]};grid-column:${slot[1]};` : '';
-      return `<div class="pp${stale ? ' stale' : ''}" style="${pos}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${!atHome && when ? `<span class="since tn">${when}</span>` : ''}</div>`;
+      return `<div class="pp${stale ? ' stale' : ''}" style="${pos}" title="${esc(label)}"><div class="av" style="background:${hexA(col, .24)};${homeRing}">${faceHtml(key, x.who)}<span class="bd">${badge}</span></div>${!atHome && when ? `<span class="since tn${late ? ' late' : ''}">${when}</span>` : ''}</div>`;
     }).join(''));
     el.hidden = false;
   }
