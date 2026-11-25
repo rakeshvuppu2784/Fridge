@@ -272,7 +272,7 @@
   const INTER_EVERY = 10 * 60e3, INTER_FOR = 30e3, CONFETTI_FOR = 90e3;
   const DATA_EVERY = 60e3, WX_EVERY = 15 * 60e3, PHOTO_EVERY = 60e3, RELOAD_EVERY = 6 * 3600e3;
   const GOLD = '#F2B84F';
-  const BUILD = 'desk-v2-20261125-homeby2';   // bump on every release: tablets reload themselves when this changes
+  const BUILD = 'desk-v2-20261125-homeby3';   // bump on every release: tablets reload themselves when this changes
 
   // ---------- Config from URL, remembered on device ----------
   const qs = new URLSearchParams(location.search);
@@ -960,8 +960,10 @@
     lakshita: { days: [1, 2, 3, 4, 5, 6], by: '17:15', grace: 20 },
     sujatha:  { days: [1, 2, 3, 4, 5, 6], by: '19:30', grace: 20 },
   };
+  const HOME_LIKE = { rhea: /^\s*(mom|mum|amma)\b/i };   // places that count as home for this check (Rhea at her mom's)
   function isLate(key, x, nowMs, atHome, driving) {
     const r = EXPECT_HOME[key]; if (!r || atHome || driving || !x.at) return false;
+    if (HOME_LIKE[key] && HOME_LIKE[key].test(x.place) && x.event !== 'leave') return false;
     const now = new Date(nowMs); if (!r.days.includes(now.getDay())) return false;
     const day0 = new Date(now).setHours(0, 0, 0, 0); if (x.at < day0) return false;   // only if they actually went out today
     const [h, m] = r.by.split(':').map(Number);
