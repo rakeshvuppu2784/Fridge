@@ -63,9 +63,16 @@
   .rn.sm { font-size: 18px; }
   .rl { font-size: 18px; font-weight: 700; margin-top: 6px; max-width: 88px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 
-  .wo { position: absolute; left: 20px; right: 20px; bottom: 30px; height: 62px; display: flex; align-items: center; justify-content: center; gap: 16px; border-top: 2px solid #000; padding-top: 8px; }
-  .wo img { width: 54px; height: 54px; border-radius: 50%; filter: grayscale(1) contrast(1.2); background: #eee; }
-  .wo .wt { font-size: 24px; font-weight: 700; }
+  /* bottom strip: the girls' long-range goals (left, subtle) and the day's first exercise (right) */
+  .wo { position: absolute; left: 20px; right: 20px; bottom: 30px; height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 2px solid #ccc; padding: 8px 6px 0; }
+  .wo img { width: 50px; height: 50px; border-radius: 50%; filter: grayscale(1) contrast(1.2); background: #eee; margin-left: auto; }
+  .wo .wt { font-size: 22px; font-weight: 700; margin-left: auto; }
+  .gls { display: flex; align-items: center; gap: 24px; }
+  .gl { display: flex; align-items: center; gap: 8px; }
+  .gr { position: relative; width: 46px; height: 46px; }
+  .gr svg { display: block; width: 46px; height: 46px; }
+  .gk { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; letter-spacing: .5px; }
+  .gn { font-size: 24px; font-weight: 700; }
 
   .foot { position: absolute; left: 28px; right: 28px; bottom: 8px; height: 20px; font-size: 15px; font-weight: 600; color: #555; display: flex; justify-content: space-between; }
   .err { color: #000; font-weight: 800; }
@@ -102,7 +109,7 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261121-rhea-mom-dad';
+  const BUILD = 'kindle-20261125-goals-ex1';
   if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
@@ -239,6 +246,24 @@
 
   const CD_ALERT_DAYS = 3;
 
+  // long-range goals (same as pad5): the ring FILLS as the journey progresses; dates are ESTIMATES until the official schedules are out
+  const GOALS = [
+    { k: 'SSC', d: '2027-03-15', from: '2026-06-12' },   // Telangana SSC 2027
+    { k: 'JEE', d: '2029-01-21', from: '2026-06-12' },   // JEE Main 2029 session 1
+  ];
+  function goalsHtml(now) {
+    const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
+    const day = s => new Date(s + 'T00:00:00').getTime(), R = 27, C = 2 * Math.PI * R;
+    const h = GOALS.map(g => {
+      const n = Math.round((day(g.d) - d0) / 864e5); if (n < 0) return '';
+      const p = Math.min(1, Math.max(0, (d0 - day(g.from)) / (day(g.d) - day(g.from))));
+      return `<div class="gl"><div class="gr"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="${R}" fill="none" stroke="#ccc" stroke-width="6"/>` +
+        `<circle cx="32" cy="32" r="${R}" fill="none" stroke="#555" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C * p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/></svg>` +
+        `<span class="gk">${g.k}</span></div><span class="gn tn">${n}</span></div>`;
+    }).join('');
+    return h ? `<div class="gls">${h}</div>` : '';
+  }
+
   const hm24 = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 
   // ---- sample data (?demo=1, &fam=1 adds family presence) ----
@@ -364,11 +389,13 @@
       return `<div class="pp${stale ? ' stale' : ''}" style="${pos}"><div class="av${atHome ? ' home' : ''}">${face}<span class="bd em">${badge}</span></div><div class="when tn">${when}</div></div>`;
     }).join(''));
 
-    // workout: the next session's exercise pictures (same table as pad5)
-    const ids = workoutIds(data.workout);
-    set('.js-wo', ids.length ? ids.map(id => `<img src="img/ex/${String(id).replace(/[^\w-]/g, '')}.png" alt="">`).join('')
-      : data.workout && data.workout.title ? `<span class="wt">🏋️ ${esc(data.workout.title)}</span>` : '');
-    if (!ids.length && !(data.workout && data.workout.title)) $('.js-wo').style.borderTop = '0';
+    // bottom strip: goals on the left; only the first (engine) exercise of the next session on the right (falls back to the title)
+    const first = workoutIds(data.workout)[0];
+    const exHtml = first ? `<img src="img/ex/${String(first).replace(/[^\w-]/g, '')}.png?v=${EX_V}" alt="">`
+      : data.workout && data.workout.title ? `<span class="wt">🏋️ ${esc(data.workout.title)}</span>` : '';
+    const strip = goalsHtml(now) + exHtml;
+    set('.js-wo', strip);
+    if (!strip) $('.js-wo').style.borderTop = '0';
 
     set('.js-upd', `updated ${hm24(now)}`);
   }
