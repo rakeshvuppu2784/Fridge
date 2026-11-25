@@ -109,7 +109,7 @@
 
 <script>
 (function () {
-  const BUILD = 'kindle-20261125-allen';
+  const BUILD = 'kindle-20261125-allen2';
   if (new URLSearchParams(location.search).get('land') === '1') { document.documentElement.classList.add('land'); document.body.classList.add('land'); }
   const LAT = 17.465, LON = 78.361;                       // Kondapur, Hyderabad (same as pad5)
   const qs = new URLSearchParams(location.search);
@@ -237,7 +237,7 @@
   const FAMILY_SLOT = { me: [1, 1], sujatha: [1, 2], rhea: [2, 1], lakshita: [2, 2] };
   const PLACE_MAP = [
     [/(grandma|granny|nani|ammamma)/i, '👵🏽'], [/\bolives?\b/i, '🐶'], [/good\s*vet/i, '🐾'], [/^\s*(mom|mum|amma)\b/i, '👩🏽'], [/^\s*(dad|papa|nanna)\b/i, '👨🏽'],
-    [/\bhome\b/i, '🏠'], [/\b(school|campus)\b/i, '👨🏽‍🏫'], [/(\ballen\b|coaching|tuition|academy|institute|class)/i, '📚'],
+    [/\bhome\b/i, '🏠'], [/\b(school|campus|allen)\b/i, '👨🏽‍🏫'], [/(coaching|tuition|academy|institute|class)/i, '📚'],
     [/\b(office|work|jio|jpl|kotak)\b/i, '💼'], [/\b(gym|fitness)\b/i, '🏋️'], [/(hospital|clinic|doctor)/i, '🏥'],
     [/(mall|market|shop)/i, '🛍️'], [/airport/i, '✈️'],
   ];
